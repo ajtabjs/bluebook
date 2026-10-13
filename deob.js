@@ -19,7 +19,7 @@ for (const k of Object.keys(mapping)) {
 console.log(`loaded ${Object.keys(table).length} strings`);
 
 // ---- 2. load the obfuscated bundle ----
-const inPath = path.join(__dirname, 'obfuscated.js');
+const inPath = path.join(__dirname, 'main.js');
 if (!fs.existsSync(inPath)) {
     console.error(`missing ${inPath}`);
     process.exit(1);
