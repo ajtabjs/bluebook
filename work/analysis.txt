@@ -1,0 +1,38 @@
+total_matches=26574
+table_entries=5059 min=20 max=5078
+
+
+-- top METHOD names --
+  r_J x25430
+  D_H x1143
+  wD x1
+
+
+-- top OBJECT names --
+  J x25932
+   x641
+  E x1
+
+
+-- per-object table hit rate --
+  J 15392/25932 (59.4%)  eg J.r_J(1471)=>"lastName"
+   365/641 (56.9%)  eg .r_J(3062)=>"isNonElectron"
+  E 0/1 (0.0%)  eg -
+
+
+-- first 15 raw matches --
+  E.wD(4)  idx=4  inTable=false
+  .r_J(9013)  idx=9013  inTable=false
+  .r_J(3062)  idx=3062  inTable=true
+  .r_J(5227)  idx=5227  inTable=false
+  .r_J(878)  idx=878  inTable=true
+  .r_J(3062)  idx=3062  inTable=true
+  .r_J(5227)  idx=5227  inTable=false
+  .r_J(9013)  idx=9013  inTable=false
+  .r_J(878)  idx=878  inTable=true
+  J.r_J(6886)  idx=6886  inTable=false
+  J.r_J(1471)  idx=1471  inTable=true
+  J.r_J(1471)  idx=1471  inTable=true
+  J.r_J(2308)  idx=2308  inTable=true
+  J.r_J(845)  idx=845  inTable=true
+  J.r_J(4491)  idx=4491  inTable=true
