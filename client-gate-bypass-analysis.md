@@ -1,6 +1,6 @@
 # Client-Side Boot Gate: Bypass Analysis
 
-**Subject:** Bluebook client bundle boot gate — integrity, verified-mode, and version-gate subsystems
+**Subject:** Client bundle boot gate — integrity, verified-mode, and version-gate subsystems
 **Companion to:** *Bundle Gate Report* (architecture and string anchors)
 **Scope:** Threat model of the client-side checks described in the bundle report, ranked bypass paths, and the server-side controls that actually hold.
 
