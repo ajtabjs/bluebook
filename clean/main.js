@@ -65946,7 +65946,7 @@
                 F7U[7] = v0J.M4r(879, 7035);
                 return !0 || (yield l5Y(v0J.T$N(F7U[7])));
               });
-            }()) ? (0, L6q._bA)() ? a6Z() : window.location.replace(v0J.T$N(196)) : s69[v0J.T$N(6049)](C9Q.createElement(L25, null)) : s69.render(C9Q[v0J.T$N(2901)](w44, null)) : a6Z();
+            }()) ? (0, L6q._bA)() ? a6Z() : a6Z() : s69[v0J.T$N(6049)](C9Q.createElement(L25, null)) : s69.render(C9Q[v0J.T$N(2901)](w44, null)) : a6Z();
           };
           new ((l0f[4] = void 0) || (l0f[4] = Promise))(function (I7G, z18) {
             var j3g = [arguments];
