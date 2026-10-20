@@ -8,11 +8,12 @@
 
 ## 0. Workspace verification (read-only pass)
 
-A read-only pass over `clean/main.js` and `strings.current.json` corrects three framings below. The structural argument is unchanged.
+A read-only pass over `clean/main.js`, `strings.current.json`, and a byte-level diff of `main.js` against `main.js.orig` corrects four framings below. The structural argument is unchanged.
 
 - The indices are keys into the canonical table, not positions. Lookup is `table[str(idx)]`; positional lookup returns the wrong string: 1079 positionally is `captureScreen`, by key it is the outdated-version card.
 - 5252 is assigned to `L6q.YJh` at line 14356 and invoked at 57498. 2348 binds reducer value `N37` at line 36116, from the `useReducer` at 34852. The predicate body `L6q.YJh` sits in webpack module `o4E(18973)`, referenced at line 10068, and is not yet extracted.
 - The obfuscation hides the accessor call, not the string. `appVersion`, `min_version`, `forceUpdate`, `checkUpdateRequired` and both card bodies are stored verbatim and resolve by key.
+- **Verified-mode is already past; integrity is not.** `cmp` against `main.js.orig` shows exactly one edit: a 44-byte deletion at offset 3,676,192 (3,843,257 vs 3,843,301 bytes). The XC2A failure arm that called `window.location.replace` with the chromebook-error URL (index 196) now reads `a6Z()` — a no-op. The check itself (`_bA`, index 8034) still runs; only its consequence was removed. No second edit appears before that offset, so the source report claim in section 8 that the integrity compare was short-circuited is not supported by the shipped bytes: `L6q.Ggh` is unmodified at all 11 call sites.
 
 Tier 0 below therefore targets `L6q.YJh` and the `N37` reducer branch, or the invocation at 57498, not the string-table indices.
 
@@ -78,8 +79,8 @@ That is why the bundle report's §7 open question matters: *does the signature c
 | Control | Why it falls |
 |---------|--------------|
 | **Production / config checks** | Client-side constants and client-parsed config. They gate the UI, nothing more. |
-| **Integrity check** | Self-referential (expected value lives in the artifact), one-shot at boot, and bypassable at Tier 3 without touching bytes. The existing patch (short-circuit true) already proved the expected value is editable. |
-| **Verified-mode check** | A client-side boolean. Already forced true. |
+| **Integrity check** | Self-referential (expected value lives in the artifact), one-shot at boot, and bypassable at Tier 3 without touching bytes. No byte-level evidence of a short-circuit in the shipped bundle: `L6q.Ggh` is unmodified at all 11 call sites, so the self-referential weakness stands on its own, unexercised. |
+| **Verified-mode check** | A client-side boolean whose failure arm is already defanged: the XC2A redirect to the chromebook error page was replaced with a no-op (the 44-byte deletion at 3,676,192). The check still runs; only its consequence was removed. |
 | **Version gate** | A comparison whose *both* operands are attacker-reachable: `appVersion` is read from the app; `min_version` arrives over the network. Patch the predicate (Tier 0), the operand (Tier 1), or the transport (Tier 4). |
 | **Obfuscation** | Raises the cost of *finding* the patch point, not the cost of *applying* it. The bundle report itself demonstrates the table is transparent once indexed. |
 
