@@ -30,7 +30,7 @@ function walk(dir) {
 }
 
 // match v0J.r/J or v0J.T$N calls with a literal integer arg, also generic accessor forms
-const reAccessor = /\b([A-Za-z0-9_$]{+)\.(r_J|T\$N)\((\d+)\)/g;
+const reAccessor = /\b([A-Za-z0-9_$]+)\.(r_J|T\$N)\((\d+)\)/g;
 
 const hits = [];
 for (const file of walk('clean')) {
@@ -53,5 +53,4 @@ for (const h of hits) {
   console.log('---');
   console.log(`${h.file}:${h.line} idx=${h.index} [${h.label}] via .${h.accessor}`);
   console.log(h.code);
-}
 }
