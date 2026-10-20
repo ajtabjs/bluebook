@@ -31,14 +31,39 @@ try{ Object.defineProperty(Navigator.prototype, `userAgent`, { get: function(){ 
 try{ Object.defineProperty(Navigator.prototype, `platform`, { get: function(){ return `Linux x86_64`; }, configurable: true }); }catch(e){}
 try{ if(navigator.userAgentData){ Object.defineProperty(navigator, `userAgentData`, { get: function(){ return { platform: `Chrome OS`, brands: [{brand: `Chromium`, version: `145`}, {brand: `Google Chrome`, version: `145`}], mobile: false }; }, configurable: true }); } }catch(e){}
 try{
-  if(navigator.storage && navigator.storage.estimate){
-    const origEstimate = navigator.storage.estimate.bind(navigator.storage);
-    navigator.storage.estimate = async () => ({
-      quota: 150 * 1024 * 1024 * 1024,
-      usage: 1024 * 1024 * 1024
-    });
-    console.log(`[shim] storage.estimate spoofed`);
+  // Spoof navigator.storage entirely with a fake StorageManager
+  const fakeEstimate = async () => ({
+    quota: 150 * 1024 * 1024 * 1024,
+    usage: 1024 * 1024 * 1024
+  });
+  const fakePersist = async () => true;
+  
+  // Override on instance
+  if(navigator.storage){
+    navigator.storage.estimate = fakeEstimate;
+    navigator.storage.persist = fakePersist;
+    console.log(`[shim] navigator.storage.estimate & persist spoofed on instance`);
   }
+  
+  // Override on prototype
+  if(StorageManager && StorageManager.prototype){
+    StorageManager.prototype.estimate = fakeEstimate;
+    StorageManager.prototype.persist = fakePersist;
+    console.log(`[shim] StorageManager.prototype.estimate & persist spoofed`);
+  }
+  
+  // Also defineProperty on navigator.storage to prevent replacement
+  try{
+    Object.defineProperty(navigator, 'storage', {
+      get: () => ({
+        estimate: fakeEstimate,
+        persist: fakePersist
+      }),
+      configurable: true
+    });
+    console.log(`[shim] navigator.storage getter spoofed`);
+  }catch(e){}
+  
 }catch(e){ console.log(`[shim] storage hook error`, e); }
 console.log(`[shim] UA spoofed to Chrome 145, ua=`, navigator.userAgent);
 })();
