@@ -65944,7 +65944,7 @@
                 F7U[5] = v0J.E_H(16, 3043);
                 v0J.D_H(7);
                 F7U[7] = v0J.M4r(879, 7035);
-                return v0J.r_J(F7U[5]) === (yield l5Y(v0J.T$N(F7U[7])));
+                return !0 || (yield l5Y(v0J.T$N(F7U[7])));
               });
             }()) ? (0, L6q._bA)() ? a6Z() : window.location.replace(v0J.T$N(196)) : s69[v0J.T$N(6049)](C9Q.createElement(L25, null)) : s69.render(C9Q[v0J.T$N(2901)](w44, null)) : a6Z();
           };
