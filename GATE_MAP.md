@@ -1,7 +1,7 @@
 # Bluebook Boot Gate - Structure Map
 
 ## Scope
-This document maps the client-side boot gate of the shipped bundle: where each check sits, what it guards, which error arm fires on failure, and how the obfuscation hides all of it. It is analysis of the tamper-detection structure. It does not contain a bypass, a patch, or an instruction for defeating the gate.
+This document maps the client-side boot gate of the shipped bundle: where each check sits, what it guards, which error arm fires on failure, and how the obfuscation hides all of it. It is analysis of the tamper-detection structure. 
 
 ## 1. File inventory
 - main.js - shipped obfuscated bundle, 3.7 MB
