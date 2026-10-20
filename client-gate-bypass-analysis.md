@@ -82,6 +82,8 @@ That is why the bundle report's §7 open question matters: *does the signature c
 | **Integrity check** | Self-referential (expected value lives in the artifact), one-shot at boot, and bypassable at Tier 3 without touching bytes. No byte-level evidence of a short-circuit in the shipped bundle: `L6q.Ggh` is unmodified at all 11 call sites, so the self-referential weakness stands on its own, unexercised. |
 | **Verified-mode check** | A client-side boolean whose failure arm is already defanged: the XC2A redirect to the chromebook error page was replaced with a no-op (the 44-byte deletion at 3,676,192). The check still runs; only its consequence was removed. |
 | **Version gate** | A comparison whose *both* operands are attacker-reachable: `appVersion` is read from the app; `min_version` arrives over the network. Patch the predicate (Tier 0), the operand (Tier 1), or the transport (Tier 4). |
+| **System check (`c7P`, line 36180)** | Builds a **self-report**, not a cryptographic challenge. Reads `navigator.userAgent` for the Chrome major version (regex `/Chrom(e|ium)\/([0-9]+)\./`), `navigator.storage.estimate()` for disk, `z8q()` for RAM, and compares against `configuration.json` (`chromeos.min_version = 144`). Every operand is a JS-visible property and spoofable from a loader injection or DevTools console. The report it returns is `{failures, successes}` — the client's own claim. |
+| **The real gate: `D9z()`** | The auth round-trip called after the system check. Its return code (`SUCCESS` / kiosk-config-error / `GENERAL_ERROR`) drives the login branch. This is the check that actually fails. It is server-side and not spoofable by the client without controlling the response. |
 | **Obfuscation** | Raises the cost of *finding* the patch point, not the cost of *applying* it. The bundle report itself demonstrates the table is transparent once indexed. |
 
 ---
@@ -90,19 +92,23 @@ That is why the bundle report's §7 open question matters: *does the signature c
 
 Every tier above gets you a **booted UI**. It does not get you exam content if the server independently checks.
 
-The version gate's dependence on a server-supplied `min_version` is a hint the backend may already re-verify — and that is the only control that actually holds.
+The version gate's dependence on a server-supplied `min_version` pointed at a backend that re-verifies. **Observation from the test environment confirms it.** After the client-side patches, login is rejected: the user cannot access anything because their verified status and version are judged incorrect. `configuration.json` is still served; login is not.
 
-So the meaningful question for an attacker is not *"can I patch the client"* (yes, trivially), but:
+So the answer to the question this section posed is now on record:
 
-> **Does the server refuse to serve content or accept submissions from a stale or tampered client?**
+> **Does the server refuse to serve content or accept submissions from a stale or tampered client?** — **Yes.** At least for version and verified status, the server gates after login, not at config fetch.
 
-If yes, Tiers 0–3 produce a working shell and no exam.
-If no, the entire gate is theater.
+Tiers 0–3 therefore produce a working shell and no exam, exactly as predicted. The client gate was theater; the server line is the one that holds.
 
-That reframes the bundle report's §7 open questions as the real ones:
+The `D9z()` call is where the decision is made. The system check in `c7P` produces a self-report — `{failures, successes}` built from `navigator.userAgent`, `navigator.storage`, and `z8q()` — and every one of those operands is fakeable. If the server trusted that report, a UA override alone would pass. It doesn't. So the gate is not the client's report; it is the server's own evaluation of the login.
 
-1. Is the integrity hash input bundle-only, or bundle + config?
-2. Does the server independently re-verify client version and capability, out-of-band?
+What remains open, and why it matters:
+
+1. **Operand provenance at `D9z()`** — are version and verified carried as plaintext fields in the login request (rewriteable), inside a signed token (forgeable only with key access), or derived server-side from account state (not spoofable at all)? The observed failure does not distinguish these. A single capture of the login request does.
+2. **Per-session versus per-request enforcement** — if the gate fires only at session mint, a session that passes once may persist as claims drift. That is the TOCTOU tier relocated to the server.
+3. **Integrity hash scope** — still unanswered. The 44-byte verified-mode edit survived, which means whatever integrity covers, it did not cover the region that was edited. That narrows the question from "bundle-only or bundle+config" to "what was actually hashed."
+
+**The architecturally honest next step is not another client patch.** The remaining surface is the login request's operand provenance and the account's verified state — neither of which lives in this bundle. That is an auth-protocol review, not a bundle review, and it is a different document with a different scope.
 
 ---
 

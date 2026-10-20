@@ -1,0 +1,25 @@
+{
+  "system_requirements": {
+    "macos": {
+      "min_version": 15.0,
+      "min_storage": 250,
+      "min_ram": 2
+    },
+    "windows": {
+      "min_version": "10.0.26100",
+      "min_storage": 250,
+      "min_ram": 2
+    },
+    "chromeos": {
+      "min_version": 144,
+      "min_storage": 150,
+      "min_ram": 1
+    },
+    "ios": {
+      "version": 18.0,
+      "min_storage": 250,
+      "banned_versions": ["17.0 ", "17.0.1", "17.0.2", "17.0.3"],
+      "_comments_": "Add a space after a major version to prevent blocking all patch versions, e.g. 17.0 , 18.0 "
+    }
+  }
+}
