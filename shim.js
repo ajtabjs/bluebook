@@ -30,5 +30,15 @@ try{
 try{ Object.defineProperty(Navigator.prototype, `userAgent`, { get: function(){ return `Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36`; }, configurable: true }); }catch(e){}
 try{ Object.defineProperty(Navigator.prototype, `platform`, { get: function(){ return `Linux x86_64`; }, configurable: true }); }catch(e){}
 try{ if(navigator.userAgentData){ Object.defineProperty(navigator, `userAgentData`, { get: function(){ return { platform: `Chrome OS`, brands: [{brand: `Chromium`, version: `145`}, {brand: `Google Chrome`, version: `145`}], mobile: false }; }, configurable: true }); } }catch(e){}
+try{
+  if(navigator.storage && navigator.storage.estimate){
+    const origEstimate = navigator.storage.estimate.bind(navigator.storage);
+    navigator.storage.estimate = async () => ({
+      quota: 150 * 1024 * 1024 * 1024,
+      usage: 1024 * 1024 * 1024
+    });
+    console.log(`[shim] storage.estimate spoofed`);
+  }
+}catch(e){ console.log(`[shim] storage hook error`, e); }
 console.log(`[shim] UA spoofed to Chrome 145, ua=`, navigator.userAgent);
 })();
