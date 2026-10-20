@@ -6,6 +6,18 @@
 
 ---
 
+## 0. Workspace verification (read-only pass)
+
+A read-only pass over `clean/main.js` and `strings.current.json` corrects three framings below. The structural argument is unchanged.
+
+- The indices are keys into the canonical table, not positions. Lookup is `table[str(idx)]`; positional lookup returns the wrong string: 1079 positionally is `captureScreen`, by key it is the outdated-version card.
+- 5252 is assigned to `L6q.YJh` at line 14356 and invoked at 57498. 2348 binds reducer value `N37` at line 36116, from the `useReducer` at 34852. The predicate body `L6q.YJh` sits in webpack module `o4E(18973)`, referenced at line 10068, and is not yet extracted.
+- The obfuscation hides the accessor call, not the string. `appVersion`, `min_version`, `forceUpdate`, `checkUpdateRequired` and both card bodies are stored verbatim and resolve by key.
+
+Tier 0 below therefore targets `L6q.YJh` and the `N37` reducer branch, or the invocation at 57498, not the string-table indices.
+
+---
+
 ## 1. Summary
 
 Nothing in the gate as described is a wall. Every check — production, config, integrity, verified-mode, and the version gate — lives in the same trust domain as the code it guards: the client. The bundle report's §6 and §9 are, functionally, the bypass recipe already written down.
