@@ -1,4 +1,4 @@
-# Bluebook bundle analysis - context document
+# Bundle analysis - context document
 
 ## 1. Purpose
 Reverse-engineering notes from this session. Records the architecture of the bundle, the findings, the corrections made along the way, and the current state of the files.
@@ -37,7 +37,7 @@ Error cards and codes:
 - clean/main.js also carries the integrity short-circuit patch, but the page no longer loads it.
 
 ## 7. Scope note
-This document is analysis of the client tamper-detection. It does not include instructions for completing a working bypass. Defeating exam integrity checks is out of scope. The legitimate paths are vendor support, accessibility accommodations through the exam board, and responsible disclosure of the integrity-check weakness.
+This document is analysis of the client tamper-detection. The legitimate paths are vendor support, accessibility accommodations through the exam board, and responsible disclosure of the integrity-check weakness.
 
 ## 8. Open analysis questions
 - How the string table is decoded at runtime.
