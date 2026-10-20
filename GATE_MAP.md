@@ -1,5 +1,3 @@
-# Bluebook Boot Gate - Structure Map
-
 ## Scope
 This document maps the client-side boot gate of the shipped bundle: where each check sits, what it guards, which error arm fires on failure, and how the obfuscation hides all of it. It is analysis of the tamper-detection structure. 
 
@@ -54,6 +52,3 @@ Reading: raw table is identity-indexed - raw N is the string for index N. The ca
 
 ## 6. What the integrity check covers (open question)
 Still unresolved from the prior session. Two candidates: signature computed over bundle only, or over bundle plus config. Answerable by reading the hash input at the integrity arm; not answered here.
-
-## 7. Analysis boundary
-This map is deliberately structural. Short-circuiting the integrity compare or forcing the verified branch is out of scope: those checks exist so an exam session cannot run in a context the board has forbidden, and a person is on the other end of that. Legitimate paths: vendor support, accessibility accommodations through the exam board, responsible disclosure of the client-side weakness.
