@@ -499,6 +499,34 @@ self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (url.origin !== location.origin) return;
 
+  // GH Pages fix: intercept absolute paths for local assets and rewrite to relative
+  // e.g., /cd173ebc1e719033.svg -> ./cd173ebc1e719033.svg
+  const absolutePath = url.pathname;
+  if (absolutePath.startsWith('/') && !absolutePath.startsWith('/api/')) {
+    const assetExtensions = ['.svg', '.woff2', '.woff', '.ttf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.css', '.js'];
+    const isLocalAsset = assetExtensions.some(ext => absolutePath.endsWith(ext));
+    if (isLocalAsset) {
+      const relativePath = '.' + absolutePath;
+      console.log(`[SW] Rewriting absolute asset path: ${absolutePath} -> ${relativePath}`);
+      event.respondWith(
+        caches.match(relativePath).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          // Fallback: try fetching the relative path
+          return fetch(new Request(relativePath, request)).then((networkResponse) => {
+            if (networkResponse.ok) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(relativePath, responseClone);
+              });
+            }
+            return networkResponse;
+          });
+        })
+      );
+      return;
+    }
+  }
+
   // Cache-first strategy for static assets
   if (request.destination === 'script' ||
       request.destination === 'style' ||
