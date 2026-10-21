@@ -154,6 +154,67 @@ try{
   };
   
   console.log(`[shim] Background check suppression utilities installed`);
-}catch(e){ console.log(`[shim] background suppression error`, e); }
+
+// 6. Suppress telemetry on tab switch / page unload
+try{
+  let isHidden = false;
+  
+  // Block sendBeacon (commonly used for analytics on unload)
+  if(navigator.sendBeacon){
+    const origSendBeacon = navigator.sendBeacon.bind(navigator);
+    navigator.sendBeacon = function(url, data){
+      const urlStr = typeof url === 'string' ? url : url?.toString();
+      if(urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry') || urlStr.includes('ga_update')){
+        console.log(`[shim] BLOCKED sendBeacon to telemetry:`, urlStr);
+        return true; // pretend it succeeded
+      }
+      return origSendBeacon(url, data);
+    };
+  }
+  
+  // Track visibility state
+  document.addEventListener('visibilitychange', () => {
+    isHidden = document.hidden;
+    if(isHidden){
+      console.log(`[shim] Tab hidden - suppressing background telemetry`);
+    } else {
+      console.log(`[shim] Tab visible - resuming`);
+    }
+  });
+  
+  // Block fetch/XHR when tab is hidden (for telemetry endpoints)
+  const origFetch2 = window.fetch;
+  window.fetch = function(url, options){
+    const urlStr = typeof url === 'string' ? url : url?.toString();
+    const isTelemetry = urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry') || urlStr.includes('ga_update');
+    if(isTelemetry && isHidden){
+      console.log(`[shim] BLOCKED fetch to telemetry (tab hidden):`, urlStr);
+      return Promise.resolve(new Response('{}', {status: 200}));
+    }
+    return origFetch2.apply(this, arguments);
+  };
+  
+  const origXhrOpen2 = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...args){
+    const urlStr = typeof url === 'string' ? url : url?.toString();
+    const isTelemetry = urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry');
+    if(isTelemetry && isHidden){
+      console.log(`[shim] BLOCKED XHR to telemetry (tab hidden):`, urlStr);
+      this.abort();
+      return;
+    }
+    return origXhrOpen2.apply(this, [method, url, ...args]);
+  };
+  
+  // Block on beforeunload/pagehide (final telemetry flush attempts)
+  ['beforeunload', 'pagehide', 'unload'].forEach(event => {
+    window.addEventListener(event, () => {
+      console.log(`[shim] ${event} - blocking final telemetry flush`);
+      isHidden = true;
+    });
+  });
+  
+  console.log(`[shim] Tab-switch/page-unload telemetry suppression installed`);
+}catch(e){ console.log(`[shim] tab-switch suppression error`, e); }
 
 })();
