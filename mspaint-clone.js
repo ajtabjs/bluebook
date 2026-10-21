@@ -648,6 +648,15 @@
                 createPaintWindow();
             }
         }
+        // Forward slash (/) to open paint window for testing
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // Prevent triggering when typing in inputs
+            const target = e.target;
+            if (!(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+                e.preventDefault();
+                createPaintWindow();
+            }
+        }
     }
 
     function undo() {
