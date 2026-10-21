@@ -64,6 +64,88 @@ try{
     console.log(`[shim] navigator.storage getter spoofed`);
   }catch(e){}
   
+  // Lockdown/device lock bypass: spoof fullscreen and pointer lock
+  const fakeFullscreenElement = { 
+    tagName: 'DIV',
+    style: {},
+    requestPointerLock: async () => {},
+    onfullscreenchange: null,
+    onpointerlockchange: null
+  };
+  const fakePointerLockElement = {
+    tagName: 'DIV',
+    style: {},
+    requestFullscreen: async () => {},
+    onfullscreenchange: null,
+    onpointerlockchange: null
+  };
+  
+  // Spoof fullscreenElement and pointerLockElement
+  try {
+    Object.defineProperty(document, 'fullscreenElement', {
+      get: () => fakeFullscreenElement,
+      configurable: true
+    });
+    Object.defineProperty(document, 'pointerLockElement', {
+      get: () => fakePointerLockElement,
+      configurable: true
+    });
+    Object.defineProperty(document, 'webkitFullscreenElement', {
+      get: () => fakeFullscreenElement,
+      configurable: true
+    });
+    Object.defineProperty(document, 'mozFullScreenElement', {
+      get: () => fakeFullscreenElement,
+      configurable: true
+    });
+    Object.defineProperty(document, 'msFullscreenElement', {
+      get: () => fakeFullscreenElement,
+      configurable: true
+    });
+    console.log(`[shim] fullscreen/pointerLock elements spoofed`);
+  } catch(e) { console.log(`[shim] fullscreen spoof error`, e); }
+  
+  // Override requestFullscreen to always succeed
+  const origRequestFullscreen = Element.prototype.requestFullscreen;
+  Element.prototype.requestFullscreen = function(options) {
+    console.log(`[shim] requestFullscreen called - forcing success`);
+    return Promise.resolve();
+  };
+  
+  // Override exitFullscreen to no-op
+  const origExitFullscreen = document.exitFullscreen;
+  document.exitFullscreen = function() {
+    console.log(`[shim] exitFullscreen called - no-op`);
+    return Promise.resolve();
+  };
+  
+  // Override requestPointerLock to always succeed
+  const origRequestPointerLock = Element.prototype.requestPointerLock;
+  Element.prototype.requestPointerLock = function() {
+    console.log(`[shim] requestPointerLock called - forcing success`);
+    return Promise.resolve();
+  };
+  
+  // Override exitPointerLock to no-op
+  const origExitPointerLock = document.exitPointerLock;
+  document.exitPointerLock = function() {
+    console.log(`[shim] exitPointerLock called - no-op`);
+    return Promise.resolve();
+  };
+  
+  // Also cover webkit/moz prefixes
+  try {
+    Element.prototype.webkitRequestFullscreen = Element.prototype.requestFullscreen;
+    Element.prototype.mozRequestFullScreen = Element.prototype.requestFullscreen;
+    Element.prototype.webkitRequestPointerLock = Element.prototype.requestPointerLock;
+    Element.prototype.mozRequestPointerLock = Element.prototype.requestPointerLock;
+    document.webkitExitFullscreen = document.exitFullscreen;
+    document.mozExitFullscreen = document.exitFullscreen;
+    document.webkitExitPointerLock = document.exitPointerLock;
+    document.mozExitPointerLock = document.exitPointerLock;
+  } catch(e) {}
+  
+  console.log(`[shim] Lockdown/device lock bypass installed`);
 }catch(e){ console.log(`[shim] storage hook error`, e); }
 console.log(`[shim] UA spoofed to Chrome 145, ua=`, navigator.userAgent);
 
