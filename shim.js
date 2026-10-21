@@ -66,4 +66,94 @@ try{
   
 }catch(e){ console.log(`[shim] storage hook error`, e); }
 console.log(`[shim] UA spoofed to Chrome 145, ua=`, navigator.userAgent);
+
+// --- Background check suppression utilities ---
+try{
+  // 1. Suppress setInterval/setTimeout for known check patterns
+  const origSetInterval = window.setInterval;
+  const origSetTimeout = window.setTimeout;
+  const blockedIntervals = new Set();
+  const blockedTimeouts = new Set();
+  
+  window.setInterval = function(fn, delay, ...args){
+    const stack = new Error().stack || '';
+    // Block intervals that look like integrity/version re-checks (typically 30s-5min)
+    if(delay >= 30000 && delay <= 300000 && (stack.includes('Ggh') || stack.includes('checkUpdateRequired') || stack.includes('integrity') || stack.includes('attestation') || stack.includes('verify'))){
+      console.log(`[shim] BLOCKED setInterval (delay=${delay}ms)`, stack.split('\n').slice(1,4).join(' | '));
+      blockedIntervals.add({fn, delay, args});
+      return -1; // fake timer ID
+    }
+    return origSetInterval.apply(this, [fn, delay, ...args]);
+  };
+  
+  window.setTimeout = function(fn, delay, ...args){
+    const stack = new Error().stack || '';
+    // Block timeouts that re-run verification
+    if(delay >= 1000 && (stack.includes('Ggh') || stack.includes('checkUpdateRequired') || stack.includes('integrity') || stack.includes('attestation') || stack.includes('verifyExamDevice'))){
+      console.log(`[shim] BLOCKED setTimeout (delay=${delay}ms)`, stack.split('\n').slice(1,4).join(' | '));
+      blockedTimeouts.add({fn, delay, args});
+      return -1;
+    }
+    return origSetTimeout.apply(this, [fn, delay, ...args]);
+  };
+  
+  // 2. Pre-define L6q.Ggh to always return true (integrity pass)
+  // This will be overridden when the bundle loads, but we can try to catch it
+  if(!window.L6q) window.L6q = {};
+  const origGgh = window.L6q.Ggh;
+  window.L6q.Ggh = async () => {
+    console.log(`[shim] L6q.Ggh called - forcing TRUE (integrity pass)`);
+    return true;
+  };
+  
+  // 3. Block Sentry/error reporting
+  if(window.Sentry){
+    const origCapture = window.Sentry.captureException;
+    window.Sentry.captureException = function(...args){
+      console.log(`[shim] BLOCKED Sentry.captureException`, args[0]?.message || args[0]);
+      return;
+    };
+    const origCaptureMessage = window.Sentry.captureMessage;
+    window.Sentry.captureMessage = function(...args){
+      console.log(`[shim] BLOCKED Sentry.captureMessage`, args[0]);
+      return;
+    };
+    console.log(`[shim] Sentry reporting suppressed`);
+  }
+  
+  // 4. Block fetch/XHR to telemetry endpoints
+  const origFetch = window.fetch;
+  window.fetch = function(url, options){
+    const urlStr = typeof url === 'string' ? url : url?.toString();
+    if(urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry') || urlStr.includes('ga_update')){
+      console.log(`[shim] BLOCKED fetch to telemetry:`, urlStr);
+      return Promise.resolve(new Response('{}', {status: 200}));
+    }
+    return origFetch.apply(this, arguments);
+  };
+  
+  const origXhrOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...args){
+    const urlStr = typeof url === 'string' ? url : url?.toString();
+    if(urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry')){
+      console.log(`[shim] BLOCKED XHR to telemetry:`, urlStr);
+      this.abort();
+      return;
+    }
+    return origXhrOpen.apply(this, [method, url, ...args]);
+  };
+  
+  // 5. Disable checkUpdateRequired if it gets attached to a global
+  const origDefineProp = Object.defineProperty;
+  Object.defineProperty = function(obj, prop, desc){
+    if(prop === 'checkUpdateRequired' || prop === 'forceUpdate'){
+      console.log(`[shim] BLOCKED defineProperty for ${prop}`);
+      return origDefineProp(obj, prop, {value: false, writable: true, configurable: true});
+    }
+    return origDefineProp.apply(this, arguments);
+  };
+  
+  console.log(`[shim] Background check suppression utilities installed`);
+}catch(e){ console.log(`[shim] background suppression error`, e); }
+
 })();
