@@ -3,7 +3,7 @@
  * Pure Cache API - no Workbox dependency
  */
 
-const CACHE_NAME = 'bluebook-v5';
+const CACHE_NAME = 'bluebook-v6';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -59,6 +59,14 @@ const STATIC_ASSETS = [
   './f8693cca22ae31bc.woff2',
   './f8d92427fd4ddeb5.ttf',
   './mspaint-clone.js',
+  // Newly fetched SVG assets (2026-10-21 continued)
+  './715fcd2e39ff411d.svg',
+  './11055a0648d683a6.svg',
+  './a792eab23094eeec.svg',
+  './7cfa9270fd0b7684.svg',
+  './bc17356e5dc6d30c.svg',
+  // Font file
+  './fonts/NotoSerif-Regular.woff2',
 ];
 
 self.addEventListener('install', (event) => {
