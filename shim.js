@@ -65,47 +65,37 @@ try{
   }catch(e){}
   
   // Lockdown/device lock bypass: spoof fullscreen and pointer lock
-  const fakeFullscreenElement = { 
-    tagName: 'DIV',
-    style: {},
-    requestPointerLock: async () => {},
-    onfullscreenchange: null,
-    onpointerlockchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => true
-  };
-  const fakePointerLockElement = {
-    tagName: 'DIV',
-    style: {},
-    requestFullscreen: async () => {},
-    onfullscreenchange: null,
-    onpointerlockchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => true
-  };
+  // Use document.documentElement (html) as the spoofed element - it's a real Element with requestFullscreen
+  const lockdownElement = document.documentElement;
   
-  // Spoof fullscreenElement and pointerLockElement
+  // Spoof fullscreenElement and pointerLockElement to return the real documentElement
   try {
     Object.defineProperty(document, 'fullscreenElement', {
-      get: () => fakeFullscreenElement,
+      get: () => lockdownElement,
       configurable: true
     });
     Object.defineProperty(document, 'pointerLockElement', {
-      get: () => fakePointerLockElement,
+      get: () => lockdownElement,
       configurable: true
     });
     Object.defineProperty(document, 'webkitFullscreenElement', {
-      get: () => fakeFullscreenElement,
+      get: () => lockdownElement,
       configurable: true
     });
     Object.defineProperty(document, 'mozFullScreenElement', {
-      get: () => fakeFullscreenElement,
+      get: () => lockdownElement,
       configurable: true
     });
     Object.defineProperty(document, 'msFullscreenElement', {
-      get: () => fakeFullscreenElement,
+      get: () => lockdownElement,
+      configurable: true
+    });
+    Object.defineProperty(document, 'webkitPointerLockElement', {
+      get: () => lockdownElement,
+      configurable: true
+    });
+    Object.defineProperty(document, 'mozPointerLockElement', {
+      get: () => lockdownElement,
       configurable: true
     });
     // Critical: fullscreenEnabled must return true for lockdown check
@@ -113,21 +103,49 @@ try{
       get: () => true,
       configurable: true
     });
-    console.log(`[shim] fullscreen/pointerLock elements spoofed`);
+    // Also spoof prefixed fullscreenEnabled (Q92C may check these)
+    Object.defineProperty(document, 'webkitFullscreenEnabled', {
+      get: () => true,
+      configurable: true
+    });
+    Object.defineProperty(document, 'mozFullScreenEnabled', {
+      get: () => true,
+      configurable: true
+    });
+    Object.defineProperty(document, 'msFullscreenEnabled', {
+      get: () => true,
+      configurable: true
+    });
+    console.log(`[shim] fullscreen/pointerLock elements spoofed to documentElement`);
   } catch(e) { console.log(`[shim] fullscreen spoof error`, e); }
   
   // Override requestFullscreen to always succeed AND dispatch fullscreenchange
   const origRequestFullscreen = Element.prototype.requestFullscreen;
   Element.prototype.requestFullscreen = function(options) {
-    console.log(`[shim] requestFullscreen called - forcing success`);
-    // Set fullscreenElement to our fake element
+    console.log(`[shim] requestFullscreen called on`, this.tagName, '- forcing success');
+    // Set fullscreenElement to this element
     Object.defineProperty(document, 'fullscreenElement', {
-      get: () => fakeFullscreenElement,
+      get: () => this,
+      configurable: true
+    });
+    Object.defineProperty(document, 'webkitFullscreenElement', {
+      get: () => this,
+      configurable: true
+    });
+    Object.defineProperty(document, 'mozFullScreenElement', {
+      get: () => this,
+      configurable: true
+    });
+    Object.defineProperty(document, 'msFullscreenElement', {
+      get: () => this,
       configurable: true
     });
     // Dispatch fullscreenchange event
     setTimeout(() => {
       document.dispatchEvent(new Event('fullscreenchange'));
+      document.dispatchEvent(new Event('webkitfullscreenchange'));
+      document.dispatchEvent(new Event('mozfullscreenchange'));
+      document.dispatchEvent(new Event('MSFullscreenChange'));
     }, 0);
     return Promise.resolve();
   };
@@ -149,13 +167,23 @@ try{
   // Override requestPointerLock to always succeed AND dispatch pointerlockchange
   const origRequestPointerLock = Element.prototype.requestPointerLock;
   Element.prototype.requestPointerLock = function() {
-    console.log(`[shim] requestPointerLock called - forcing success`);
+    console.log(`[shim] requestPointerLock called on`, this.tagName, '- forcing success');
     Object.defineProperty(document, 'pointerLockElement', {
-      get: () => fakePointerLockElement,
+      get: () => this,
+      configurable: true
+    });
+    Object.defineProperty(document, 'webkitPointerLockElement', {
+      get: () => this,
+      configurable: true
+    });
+    Object.defineProperty(document, 'mozPointerLockElement', {
+      get: () => this,
       configurable: true
     });
     setTimeout(() => {
       document.dispatchEvent(new Event('pointerlockchange'));
+      document.dispatchEvent(new Event('webkitpointerlockchange'));
+      document.dispatchEvent(new Event('mozpointerlockchange'));
     }, 0);
     return Promise.resolve();
   };
@@ -229,6 +257,23 @@ try{
     return true;
   };
   
+  // 2b. Spoof L6q.bSx (eviction detection storage) to always return valid marker
+  // This prevents "you've started this test on another device" errors
+  if(!window.L6q.bSx) window.L6q.bSx = {};
+  const fakeBstItem = { value: 'eviction-marker-valid', timestamp: Date.now() };
+  window.L6q.bSx.getItem = window.L6q.bSx.getItem || (async (key) => {
+    console.log(`[shim] L6q.bSx.getItem(${key}) - returning valid marker`);
+    return fakeBstItem;
+  });
+  window.L6q.bSx.setItem = window.L6q.bSx.setItem || (async (key, value) => {
+    console.log(`[shim] L6q.bSx.setItem(${key}) - allowing`);
+    return true;
+  });
+  // Also support the minified method names (5217=setItem, 213=getItem)
+  window.L6q.bSx[5217] = window.L6q.bSx.setItem;
+  window.L6q.bSx[213] = window.L6q.bSx.getItem;
+  console.log(`[shim] L6q.bSx (eviction detection) spoofed`);
+  
   // 3. Block Sentry/error reporting
   if(window.Sentry){
     const origCapture = window.Sentry.captureException;
@@ -267,6 +312,45 @@ try{
       console.log(`[shim] BLOCKED fetch to telemetry:`, urlStr);
       return Promise.resolve(new Response('{}', {status: 200}));
     }
+    // Intercept GraphQL mutations for deviceSwitchAllowed - force ALLOWED response
+    if (urlStr.includes('graphql') || urlStr.includes('api') || urlStr.includes('collegeboard.org')) {
+      const bodyStr = options?.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : '';
+      if (bodyStr.includes('deviceSwitchAllowed') || bodyStr.includes('deviceSwitchStatus')) {
+        console.log(`[shim] INTERCEPTED deviceSwitchAllowed mutation - forcing ALLOWED`);
+        return Promise.resolve(new Response(JSON.stringify({
+          data: {
+            deviceSwitchAllowed: 'ALLOWED',
+            deviceSwitchStatus: {
+              allowed: true,
+              status: 'ALLOWED'
+            }
+          }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      // Also intercept verifyExamDeviceId
+      if (bodyStr.includes('verifyExamDeviceId')) {
+        console.log(`[shim] INTERCEPTED verifyExamDeviceId - forcing success`);
+        return Promise.resolve(new Response(JSON.stringify({
+          data: { verifyExamDeviceId: { success: true } }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+      // Intercept getRegistrationCheckinStatus
+      if (bodyStr.includes('getRegistrationCheckinStatus')) {
+        console.log(`[shim] INTERCEPTED getRegistrationCheckinStatus - forcing 0`);
+        return Promise.resolve(new Response(JSON.stringify({
+          data: { getRegistrationCheckinStatus: 0 }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }));
+      }
+    }
     return origFetch.apply(this, arguments);
   };
   
@@ -278,7 +362,43 @@ try{
       this.abort();
       return;
     }
+    // Intercept GraphQL mutations for deviceSwitchAllowed
+    if (urlStr.includes('graphql') || urlStr.includes('api') || urlStr.includes('collegeboard.org')) {
+      this._shimInterceptGraphQL = true;
+    }
     return origXhrOpen.apply(this, [method, url, ...args]);
+  };
+
+  const origXhrSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function(body){
+    if (this._shimInterceptGraphQL && body) {
+      const bodyStr = typeof body === 'string' ? body : JSON.stringify(body);
+      if (bodyStr.includes('deviceSwitchAllowed') || bodyStr.includes('deviceSwitchStatus')) {
+        console.log(`[shim] INTERCEPTED XHR deviceSwitchAllowed - forcing ALLOWED`);
+        this._shimForceResponse = { data: { deviceSwitchAllowed: 'ALLOWED', deviceSwitchStatus: { allowed: true, status: 'ALLOWED' } } };
+      }
+      if (bodyStr.includes('verifyExamDeviceId')) {
+        console.log(`[shim] INTERCEPTED XHR verifyExamDeviceId - forcing success`);
+        this._shimForceResponse = { data: { verifyExamDeviceId: { success: true } } };
+      }
+      if (bodyStr.includes('getRegistrationCheckinStatus')) {
+        console.log(`[shim] INTERCEPTED XHR getRegistrationCheckinStatus - forcing 0`);
+        this._shimForceResponse = { data: { getRegistrationCheckinStatus: 0 } };
+      }
+    }
+    return origXhrSend.apply(this, arguments);
+  };
+
+  const origXhrOnLoad = XMLHttpRequest.prototype.onload;
+  XMLHttpRequest.prototype.onload = function(e) {
+    if (this._shimForceResponse) {
+      Object.defineProperty(this, 'responseText', { value: JSON.stringify(this._shimForceResponse), configurable: true });
+      Object.defineProperty(this, 'response', { value: JSON.stringify(this._shimForceResponse), configurable: true });
+      Object.defineProperty(this, 'status', { value: 200, configurable: true });
+      Object.defineProperty(this, 'statusText', { value: 'OK', configurable: true });
+      console.log(`[shim] Forced XHR response:`, this._shimForceResponse);
+    }
+    if (origXhrOnLoad) return origXhrOnLoad.call(this, e);
   };
   
   // 5. Disable checkUpdateRequired if it gets attached to window (only on window/global)
