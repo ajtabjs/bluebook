@@ -70,14 +70,20 @@ try{
     style: {},
     requestPointerLock: async () => {},
     onfullscreenchange: null,
-    onpointerlockchange: null
+    onpointerlockchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => true
   };
   const fakePointerLockElement = {
     tagName: 'DIV',
     style: {},
     requestFullscreen: async () => {},
     onfullscreenchange: null,
-    onpointerlockchange: null
+    onpointerlockchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => true
   };
   
   // Spoof fullscreenElement and pointerLockElement
@@ -102,13 +108,27 @@ try{
       get: () => fakeFullscreenElement,
       configurable: true
     });
+    // Critical: fullscreenEnabled must return true for lockdown check
+    Object.defineProperty(document, 'fullscreenEnabled', {
+      get: () => true,
+      configurable: true
+    });
     console.log(`[shim] fullscreen/pointerLock elements spoofed`);
   } catch(e) { console.log(`[shim] fullscreen spoof error`, e); }
   
-  // Override requestFullscreen to always succeed
+  // Override requestFullscreen to always succeed AND dispatch fullscreenchange
   const origRequestFullscreen = Element.prototype.requestFullscreen;
   Element.prototype.requestFullscreen = function(options) {
     console.log(`[shim] requestFullscreen called - forcing success`);
+    // Set fullscreenElement to our fake element
+    Object.defineProperty(document, 'fullscreenElement', {
+      get: () => fakeFullscreenElement,
+      configurable: true
+    });
+    // Dispatch fullscreenchange event
+    setTimeout(() => {
+      document.dispatchEvent(new Event('fullscreenchange'));
+    }, 0);
     return Promise.resolve();
   };
   
@@ -116,13 +136,27 @@ try{
   const origExitFullscreen = document.exitFullscreen;
   document.exitFullscreen = function() {
     console.log(`[shim] exitFullscreen called - no-op`);
+    Object.defineProperty(document, 'fullscreenElement', {
+      get: () => null,
+      configurable: true
+    });
+    setTimeout(() => {
+      document.dispatchEvent(new Event('fullscreenchange'));
+    }, 0);
     return Promise.resolve();
   };
   
-  // Override requestPointerLock to always succeed
+  // Override requestPointerLock to always succeed AND dispatch pointerlockchange
   const origRequestPointerLock = Element.prototype.requestPointerLock;
   Element.prototype.requestPointerLock = function() {
     console.log(`[shim] requestPointerLock called - forcing success`);
+    Object.defineProperty(document, 'pointerLockElement', {
+      get: () => fakePointerLockElement,
+      configurable: true
+    });
+    setTimeout(() => {
+      document.dispatchEvent(new Event('pointerlockchange'));
+    }, 0);
     return Promise.resolve();
   };
   
@@ -130,6 +164,13 @@ try{
   const origExitPointerLock = document.exitPointerLock;
   document.exitPointerLock = function() {
     console.log(`[shim] exitPointerLock called - no-op`);
+    Object.defineProperty(document, 'pointerLockElement', {
+      get: () => null,
+      configurable: true
+    });
+    setTimeout(() => {
+      document.dispatchEvent(new Event('pointerlockchange'));
+    }, 0);
     return Promise.resolve();
   };
   
