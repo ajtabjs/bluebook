@@ -154,6 +154,7 @@ try{
   };
   
   console.log(`[shim] Background check suppression utilities installed`);
+}catch(e){ console.log(`[shim] background suppression error`, e); }
 
 // 6. Suppress telemetry on tab switch / page unload
 try{
