@@ -121,11 +121,26 @@ try{
     console.log(`[shim] Sentry reporting suppressed`);
   }
   
-  // 4. Block fetch/XHR to telemetry endpoints
+  // 4. Block fetch/XHR to telemetry endpoints ONLY (not exam APIs)
+  const TELEMETRY_DOMAINS = ['sentry.io', 'o516766.ingest.sentry.io'];
+  const TELEMETRY_PATHS = ['/envelope/', '/api/5667256/', '/api/telemetry/', '/api/analytics/', '/ga_update'];
+  
+  function isTelemetryUrl(urlStr) {
+    // Only block known telemetry domains
+    for (const domain of TELEMETRY_DOMAINS) {
+      if (urlStr.includes(domain)) return true;
+    }
+    // Only block specific telemetry paths on collegeboard.org
+    for (const path of TELEMETRY_PATHS) {
+      if (urlStr.includes(path)) return true;
+    }
+    return false;
+  }
+  
   const origFetch = window.fetch;
   window.fetch = function(url, options){
     const urlStr = typeof url === 'string' ? url : url?.toString();
-    if(urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry') || urlStr.includes('ga_update')){
+    if (isTelemetryUrl(urlStr)) {
       console.log(`[shim] BLOCKED fetch to telemetry:`, urlStr);
       return Promise.resolve(new Response('{}', {status: 200}));
     }
@@ -135,7 +150,7 @@ try{
   const origXhrOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(method, url, ...args){
     const urlStr = typeof url === 'string' ? url : url?.toString();
-    if(urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry')){
+    if (isTelemetryUrl(urlStr)) {
       console.log(`[shim] BLOCKED XHR to telemetry:`, urlStr);
       this.abort();
       return;
@@ -165,7 +180,7 @@ try{
     const origSendBeacon = navigator.sendBeacon.bind(navigator);
     navigator.sendBeacon = function(url, data){
       const urlStr = typeof url === 'string' ? url : url?.toString();
-      if(urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry') || urlStr.includes('ga_update')){
+      if (isTelemetryUrl(urlStr)) {
         console.log(`[shim] BLOCKED sendBeacon to telemetry:`, urlStr);
         return true; // pretend it succeeded
       }
@@ -187,7 +202,7 @@ try{
   const origFetch2 = window.fetch;
   window.fetch = function(url, options){
     const urlStr = typeof url === 'string' ? url : url?.toString();
-    const isTelemetry = urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry') || urlStr.includes('ga_update');
+    const isTelemetry = isTelemetryUrl(urlStr);
     if(isTelemetry && isHidden){
       console.log(`[shim] BLOCKED fetch to telemetry (tab hidden):`, urlStr);
       return Promise.resolve(new Response('{}', {status: 200}));
@@ -198,7 +213,7 @@ try{
   const origXhrOpen2 = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(method, url, ...args){
     const urlStr = typeof url === 'string' ? url : url?.toString();
-    const isTelemetry = urlStr.includes('sentry.io') || urlStr.includes('analytics') || urlStr.includes('telemetry');
+    const isTelemetry = isTelemetryUrl(urlStr);
     if(isTelemetry && isHidden){
       console.log(`[shim] BLOCKED XHR to telemetry (tab hidden):`, urlStr);
       this.abort();
