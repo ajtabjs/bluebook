@@ -240,13 +240,15 @@ try{
     return origXhrOpen.apply(this, [method, url, ...args]);
   };
   
-  // 5. Disable checkUpdateRequired if it gets attached to a global (only on window/global)
+  // 5. Disable checkUpdateRequired if it gets attached to window (only on window/global)
   const origDefineProp = Object.defineProperty;
   Object.defineProperty = function(obj, prop, desc){
+    // Only block checkUpdateRequired/forceUpdate when defined directly on window
     if(obj === window && (prop === 'checkUpdateRequired' || prop === 'forceUpdate')){
       console.log(`[shim] BLOCKED defineProperty for ${prop} on window`);
       return origDefineProp(obj, prop, {value: false, writable: true, configurable: true});
     }
+    // Allow all other Object.defineProperty calls to proceed normally
     return origDefineProp.apply(this, arguments);
   };
   
