@@ -3,7 +3,7 @@
  * Pure Cache API - no Workbox dependency
  */
 
-const CACHE_NAME = 'bluebook-v2';
+const CACHE_NAME = 'bluebook-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -40,6 +40,24 @@ const STATIC_ASSETS = [
   './7270cbfed3ff9d91.svg',
   './1063fd5a65908453.svg',
   './e89c482bb3c378ae.woff2',
+  // Additional fonts from vendor-public.js
+  './11e05b7d957a8fa8.woff2',
+  './1fef99d151543045.woff2',
+  './2a63183e6dff7d00.woff2',
+  './3443d6ceebc5f7ae.woff',
+  './35bf7b51c120b339.ttf',
+  './390061c79a976b33.woff2',
+  './45af087b9f656297.woff',
+  './4e7449338f3a9fee.woff2',
+  './78caebf195bb74dd.woff2',
+  './86fc2559ff73eac5.woff2',
+  './97b722c1a6a9477b.ttf',
+  './a8535ca1f2f140ec.woff',
+  './b4556791e2a9e005.woff2',
+  './b905938f03330d83.woff2',
+  './e6298ae4e67c21f0.woff2',
+  './f8693cca22ae31bc.woff2',
+  './f8d92427fd4ddeb5.ttf',
 ];
 
 self.addEventListener('install', (event) => {
