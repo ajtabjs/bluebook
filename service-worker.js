@@ -1,9 +1,7 @@
 /**
  * Service Worker for Bluebook PWA
- * Generated with Workbox
+ * Pure Cache API - no Workbox dependency
  */
-
-importScripts('workbox-503dcac9.js');
 
 const CACHE_NAME = 'bluebook-v1';
 const STATIC_ASSETS = [
