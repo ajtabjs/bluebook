@@ -3,7 +3,7 @@
  * Pure Cache API - no Workbox dependency
  */
 
-const CACHE_NAME = 'bluebook-v4';
+const CACHE_NAME = 'bluebook-v5';
 const STATIC_ASSETS = [
   './',
   './index.html',

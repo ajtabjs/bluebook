@@ -108,6 +108,12 @@
                 overflow-x: auto;
             ">
                 <div style="display:flex;gap:2px;align-items:center;border-right:1px solid #808080;padding-right:4px;margin-right:4px;">
+                    <button class="mspaint-tool" data-tool="undo" title="Undo (Ctrl+Z)" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5.22.7.33 1.44.33 2.2 0 2.65-2.15 4.9-4.83 4.94-2.36.01-4.4-1.97-4.8-4.33l-1.42 1.42C8.27 19.54 10.92 21 14 21c3.68 0 6.94-2.47 8.07-5.88l-1.47-1.47c-.64.97-1.5 1.87-2.53 2.71-.95.76-2.02 1.4-3.2 1.89-2.2.02-4.01-1.43-4.74-3.48 0-.68.08-1.34.22-1.96L12 7c-1.91 0-3.65.59-5.02 1.55l-1.43 1.43C8.77 10.54 10.45 9 12.5 9c2.35 0 4.33 1.22 5.36 3.04.21.38.33.8.33 1.27 0 .84-.24 1.63-.64 2.31l1.52 1.52c.49-.72.74-1.56.74-2.74 0-2.5-2.04-4.54-4.54-4.54z" fill="black"/></svg>
+                    </button>
+                    <button class="mspaint-tool" data-tool="redo" title="Redo (Ctrl+Y)" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.21 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 12c1.3-2.23 3.45-3.9 5.9-3.9 2.23 0 4.12 1.14 5.1 2.77l1.35-1.35C12.97 8.81 12.3 8.5 11.5 8.5c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5.22.7.33 1.44.33 2.2 0 2.65-2.15 4.9-4.83 4.94-2.36.01-4.4-1.97-4.8-4.33l-1.42 1.42C8.27 19.54 10.92 21 14 21c3.68 0 6.94-2.47 8.07-5.88l-1.47-1.47c-.64.97-1.5 1.87-2.53 2.71-.95.76-2.02 1.4-3.2 1.89-2.2.02-4.01-1.43-4.74-3.48 0-.68.08-1.34.22-1.96L12 7c-1.91 0-3.65.59-5.02 1.55l-1.43 1.43C8.77 10.54 10.45 9 12.5 9c2.35 0 4.33 1.22 5.36 3.04.21.38.33.8.33 1.27 0 .84-.24 1.63-.64 2.31l1.52 1.52c.49-.72.74-1.56.74-2.74 0-2.5-2.04-4.54-4.54-4.54z" fill="black"/></svg>
+                    </button>
                     <button class="mspaint-tool" data-tool="select" title="Select" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
                         <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 3h6v6H3zM3 15h6v6H3zM15 3h6v6h-6zM15 15h6v6h-6z" fill="none" stroke="black" stroke-width="2"/><path d="M9 9h6v6H9z" fill="none" stroke="black" stroke-width="2" stroke-dasharray="4"/></svg>
                     </button>
@@ -629,7 +635,8 @@
             e.preventDefault();
             redo();
         }
-        if (e.key === 'Escape' && paintWindow.style.display !== 'none') {
+        // Use backtick (`) key instead of Escape to close window (Escape exits fullscreen)
+        if (e.key === '`' && paintWindow.style.display !== 'none') {
             paintWindow.style.display = 'none';
         }
     }
