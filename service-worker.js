@@ -3,7 +3,7 @@
  * Pure Cache API - no Workbox dependency
  */
 
-const CACHE_NAME = 'bluebook-v3';
+const CACHE_NAME = 'bluebook-v4';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -58,6 +58,7 @@ const STATIC_ASSETS = [
   './e6298ae4e67c21f0.woff2',
   './f8693cca22ae31bc.woff2',
   './f8d92427fd4ddeb5.ttf',
+  './mspaint-clone.js',
 ];
 
 self.addEventListener('install', (event) => {
