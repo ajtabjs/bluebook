@@ -3,7 +3,7 @@
  * Pure Cache API - no Workbox dependency
  */
 
-const CACHE_NAME = 'bluebook-v6';
+const CACHE_NAME = 'bluebook-v8';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -67,6 +67,9 @@ const STATIC_ASSETS = [
   './bc17356e5dc6d30c.svg',
   // Font file
   './fonts/NotoSerif-Regular.woff2',
+  // Response/telemetry workers
+  './responses-worker.4f27696af686b45e.js',
+  './telemetry-worker.4f27696af686b45e.js',
 ];
 
 self.addEventListener('install', (event) => {

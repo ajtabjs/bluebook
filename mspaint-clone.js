@@ -636,8 +636,17 @@
             redo();
         }
         // Use backtick (`) key instead of Escape to close window (Escape exits fullscreen)
-        if (e.key === '`' && paintWindow.style.display !== 'none') {
+        if (e.key === '`' && paintWindow && paintWindow.style.display !== 'none') {
             paintWindow.style.display = 'none';
+        }
+        // Global keybind to toggle paint window: Ctrl+Shift+P
+        if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+            e.preventDefault();
+            if (paintWindow && paintWindow.style.display !== 'none') {
+                paintWindow.style.display = 'none';
+            } else {
+                createPaintWindow();
+            }
         }
     }
 
@@ -693,25 +702,38 @@
 
     // Check for Desmos calculator and hook in
     function checkDesmos() {
-        if (window.Desmos && window.Calculator) {
+        console.log('[MSPaint] checkDesmos called, Desmos:', window.Desmos ? Object.keys(window.Desmos) : 'undefined');
+        if (window.Desmos && (window.Desmos.Calculator || window.Desmos.GraphingCalculator)) {
             // Hook into Desmos
-            const originalGraph = window.Calculator.prototype.setExpression;
-            window.Calculator.prototype.setExpression = function(state) {
-                if (state.latex === 'x=miku' || state.latex === 'teto') {
-                    setTimeout(() => createPaintWindow(), 100);
-                }
-                return originalGraph.call(this, state);
-            };
+            const CalcClass = window.Desmos.Calculator || window.Desmos.GraphingCalculator;
+            console.log('[MSPaint] Found Calculator class:', CalcClass);
+            const originalGraph = CalcClass.prototype.setExpression;
+            if (originalGraph) {
+                CalcClass.prototype.setExpression = function(state) {
+                    if (state && (state.latex === 'x=miku' || state.latex === 'teto')) {
+                        console.log('[MSPaint] Easter egg triggered via setExpression:', state.latex);
+                        setTimeout(() => createPaintWindow(), 100);
+                    }
+                    return originalGraph.call(this, state);
+                };
+                console.log('[MSPaint] Hooked setExpression');
+            } else {
+                console.log('[MSPaint] setExpression not found on prototype');
+            }
             
             // Also watch for expression changes
             document.addEventListener('keydown', (e) => {
                 if (e.target.tagName === 'INPUT' && e.key === 'Enter') {
                     const val = e.target.value.toLowerCase().trim();
                     if (val === 'teto' || val === 'x=miku') {
+                        console.log('[MSPaint] Easter egg triggered via input:', val);
                         setTimeout(() => createPaintWindow(), 100);
                     }
                 }
             });
+            console.log('[MSPaint] Desmos hooks installed');
+        } else {
+            console.log('[MSPaint] Desmos not ready yet');
         }
     }
 
@@ -725,8 +747,62 @@
     // Also poll for Desmos
     const desmosInterval = setInterval(() => {
         if (window.Desmos) {
+            console.log('[MSPaint] Desmos detected:', Object.keys(window.Desmos));
             clearInterval(desmosInterval);
             checkDesmos();
         }
-    }, 1000);
-})();
+    }, 500);
+
+    // Also poll for calculator instances in the DOM
+    const instanceInterval = setInterval(() => {
+        // Check for calculator instances in the DOM
+        const calcElements = document.querySelectorAll('.dcg-calc-basic-main, .dcg-calc-basic-main-wrapper, [data-dcg-calculator]');
+        if (calcElements.length > 0) {
+            console.log('[MSPaint] Found calculator DOM elements:', calcElements.length);
+            clearInterval(instanceInterval);
+            hookCalculatorInstances();
+        }
+    }, 500);
+
+    function hookCalculatorInstances() {
+        // Try to find calculator controllers in the DOM
+        const controllers = document.querySelectorAll('[data-dcg-controller]');
+        console.log('[MSPaint] Found controllers:', controllers.length);
+        
+        // Also try to find Desmos calculator instances
+        if (window.Desmos && window.Desmos.Calculator) {
+            console.log('[MSPaint] Desmos.Calculator found');
+        }
+        
+        // Try to find calculator instances in the window
+        if (window.calculator) {
+            console.log('[MSPaint] Found window.calculator');
+            hookCalculator(window.calculator);
+        }
+        
+        // Check for Desmos calculator instance in global scope
+        if (window.Desmos && window.Desmos.GraphingCalculator) {
+            // Try to find instances
+            const instances = document.querySelectorAll('.dcg-calc-basic-main');
+            console.log('[MSPaint] Found calculator instances:', instances.length);
+        }
+    }
+    
+    function hookCalculator(calc) {
+        if (calc && calc.controller && calc.controller.model) {
+            console.log('[MSPaint] Hooking calculator instance');
+            // Hook into the controller's setExpression
+            const originalSetExpression = calc.controller.setExpression;
+            if (originalSetExpression) {
+                calc.controller.setExpression = function(state) {
+                    if (state && (state.latex === 'x=miku' || state.latex === 'teto')) {
+                        console.log('[MSPaint] Easter egg triggered via setExpression:', state.latex);
+                        setTimeout(() => createPaintWindow(), 100);
+                    }
+                    return originalSetExpression.call(this, state);
+                };
+            }
+        }
+    }
+})
+();
