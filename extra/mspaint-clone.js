@@ -709,6 +709,36 @@
             (paintWindow.style.display = 'none') : createPaintWindow()
     };
 
+    // Global keybind to toggle paint window - register immediately on load
+    function onGlobalKeyDown(e) {
+        // Ctrl+Shift+P to toggle paint window
+        if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+            e.preventDefault();
+            if (paintWindow && paintWindow.style.display !== 'none') {
+                paintWindow.style.display = 'none';
+            } else {
+                createPaintWindow();
+            }
+            return;
+        }
+        // Forward slash (/) to open paint window for testing
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // Prevent triggering when typing in inputs
+            const target = e.target;
+            if (!(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+                e.preventDefault();
+                createPaintWindow();
+            }
+            return;
+        }
+        // Backtick (`) to close paint window
+        if (e.key === '`' && paintWindow && paintWindow.style.display !== 'none') {
+            paintWindow.style.display = 'none';
+            return;
+        }
+    }
+    document.addEventListener('keydown', onGlobalKeyDown);
+
     // Check for Desmos calculator and hook in
     function checkDesmos() {
         console.log('[MSPaint] checkDesmos called, Desmos:', window.Desmos ? Object.keys(window.Desmos) : 'undefined');

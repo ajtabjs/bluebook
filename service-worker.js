@@ -58,7 +58,8 @@ const STATIC_ASSETS = [
   './e6298ae4e67c21f0.woff2',
   './f8693cca22ae31bc.woff2',
   './f8d92427fd4ddeb5.ttf',
-  './mspaint-clone.js',
+  './extra/mspaint-clone.js',
+  './extra/gpt-crax-wrapper.js',
   // Newly fetched SVG assets (2026-10-21 continued)
   './715fcd2e39ff411d.svg',
   './11055a0648d683a6.svg',
