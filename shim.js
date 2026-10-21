@@ -341,17 +341,9 @@ try{
     return origXhrSend.apply(this, arguments);
   };
 
-  const origXhrOnLoad = XMLHttpRequest.prototype.onload;
-  XMLHttpRequest.prototype.onload = function(e) {
-    if (this._shimForceResponse) {
-      Object.defineProperty(this, 'responseText', { value: JSON.stringify(this._shimForceResponse), configurable: true });
-      Object.defineProperty(this, 'response', { value: JSON.stringify(this._shimForceResponse), configurable: true });
-      Object.defineProperty(this, 'status', { value: 200, configurable: true });
-      Object.defineProperty(this, 'statusText', { value: 'OK', configurable: true });
-      console.log(`[shim] Forced XHR response:`, this._shimForceResponse);
-    }
-    if (origXhrOnLoad) return origXhrOnLoad.call(this, e);
-  };
+  // XHR onload override - skipped to avoid Illegal invocation on some browsers
+  // The GraphQL interceptors via open/send are sufficient
+  console.log('[shim] XHR onload override skipped (causes Illegal invocation on some browsers)');
   
   // 5. Disable checkUpdateRequired if it gets attached to window (only on window/global)
   const origDefineProp = Object.defineProperty;
