@@ -336,6 +336,14 @@ frame-src https://login.microsoftonline.com;">
         
           
           
+        <script>
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+              .then(reg => console.log('[SW] Registered:', reg.scope))
+              .catch(err => console.log('[SW] Registration failed:', err));
+          }
+        </script>
+
         </body>
       </html>
       
