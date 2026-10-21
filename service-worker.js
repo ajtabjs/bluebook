@@ -501,8 +501,12 @@ self.addEventListener('fetch', (event) => {
 
   // GH Pages fix: intercept absolute paths for local assets and rewrite to relative
   // e.g., /cd173ebc1e719033.svg -> ./cd173ebc1e719033.svg
+  // BUT don't rewrite paths that are already correctly scoped to the repo path
   const absolutePath = url.pathname;
-  if (absolutePath.startsWith('/') && !absolutePath.startsWith('/api/')) {
+  // Detect repo path from SW scope (e.g., /bluebook/ for https://user.github.io/bluebook/)
+  const repoPath = self.registration?.scope ? new URL(self.registration.scope).pathname : '/';
+  
+  if (absolutePath.startsWith('/') && !absolutePath.startsWith('/api/') && !absolutePath.startsWith(repoPath)) {
     const assetExtensions = ['.svg', '.woff2', '.woff', '.ttf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.css', '.js'];
     const isLocalAsset = assetExtensions.some(ext => absolutePath.endsWith(ext));
     if (isLocalAsset) {
