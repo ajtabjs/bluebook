@@ -1,0 +1,3 @@
+# Paste your cookie string here (format: name1=value1; name2=value2; ...)
+# Example:
+# session_id=abc123; auth_token=xyz789; _ga=GA1.2.123456789.1234567890

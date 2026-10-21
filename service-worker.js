@@ -13,6 +13,21 @@ const STATIC_ASSETS = [
   './bluebook-16x16.1121fe81.png',
   './bluebook-32x32.cb8ed68a.png',
   './bluebook-192x192.5d752eee.png',
+  './bluebook-512x512.0148e2a2.png',
+  './cd173ebc1e719033.svg',
+  './f83137da2104c653.svg',
+  './1e8ffee1ac6ff755.svg',
+  './3ebda4955e48bdfa.svg',
+  './45f9e80d892a8583.svg',
+  './7616ebc5551f295d.svg',
+  './7c5454f13e7d157c.svg',
+  './802e74d124150325.svg',
+  './89da239509290a5b.svg',
+  './a059f9a86ee9f66a.svg',
+  './c3ee5d4d5a1f2c34.svg',
+  './cba6998ee1bf9b2a.svg',
+  './d65cbe15e1e0a517.svg',
+  './f8e6109dd28f690d.svg',
 ];
 
 self.addEventListener('install', (event) => {
