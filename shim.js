@@ -226,61 +226,7 @@ console.log(`[shim] UA spoofed to Chrome 145, ua=`, navigator.userAgent);
 
 // --- Background check suppression utilities ---
 try{
-  // 1. Suppress setInterval/setTimeout for known check patterns
-  const origSetInterval = window.setInterval;
-  const origSetTimeout = window.setTimeout;
-  const blockedIntervals = new Set();
-  const blockedTimeouts = new Set();
-  
-  window.setInterval = function(fn, delay, ...args){
-    const stack = new Error().stack || '';
-    // Block intervals that look like integrity/version re-checks (typically 30s-5min)
-    if(delay >= 30000 && delay <= 300000 && (stack.includes('Ggh') || stack.includes('checkUpdateRequired') || stack.includes('integrity') || stack.includes('attestation') || stack.includes('verify'))){
-      console.log(`[shim] BLOCKED setInterval (delay=${delay}ms)`, stack.split('\n').slice(1,4).join(' | '));
-      blockedIntervals.add({fn, delay, args});
-      return -1; // fake timer ID
-    }
-    return origSetInterval.apply(this, [fn, delay, ...args]);
-  };
-  
-  window.setTimeout = function(fn, delay, ...args){
-    const stack = new Error().stack || '';
-    // Block timeouts that re-run verification
-    if(delay >= 1000 && (stack.includes('Ggh') || stack.includes('checkUpdateRequired') || stack.includes('integrity') || stack.includes('attestation') || stack.includes('verifyExamDevice'))){
-      console.log(`[shim] BLOCKED setTimeout (delay=${delay}ms)`, stack.split('\n').slice(1,4).join(' | '));
-      blockedTimeouts.add({fn, delay, args});
-      return -1;
-    }
-    return origSetTimeout.apply(this, [fn, delay, ...args]);
-  };
-  
-  // 2. Pre-define L6q.Ggh to always return true (integrity pass)
-  // This will be overridden when the bundle loads, but we can try to catch it
-  if(!window.L6q) window.L6q = {};
-  const origGgh = window.L6q.Ggh;
-  window.L6q.Ggh = async () => {
-    console.log(`[shim] L6q.Ggh called - forcing TRUE (integrity pass)`);
-    return true;
-  };
-  
-  // 2b. Spoof L6q.bSx (eviction detection storage) to always return valid marker
-  // This prevents "you've started this test on another device" errors
-  if(!window.L6q.bSx) window.L6q.bSx = {};
-  const fakeBstItem = { value: 'eviction-marker-valid', timestamp: Date.now() };
-  window.L6q.bSx.getItem = window.L6q.bSx.getItem || (async (key) => {
-    console.log(`[shim] L6q.bSx.getItem(${key}) - returning valid marker`);
-    return fakeBstItem;
-  });
-  window.L6q.bSx.setItem = window.L6q.bSx.setItem || (async (key, value) => {
-    console.log(`[shim] L6q.bSx.setItem(${key}) - allowing`);
-    return true;
-  });
-  // Also support the minified method names (5217=setItem, 213=getItem)
-  window.L6q.bSx[5217] = window.L6q.bSx.setItem;
-  window.L6q.bSx[213] = window.L6q.bSx.getItem;
-  console.log(`[shim] L6q.bSx (eviction detection) spoofed`);
-  
-  // 3. Block Sentry/error reporting
+  // 1. Block Sentry/error reporting
   if(window.Sentry){
     const origCapture = window.Sentry.captureException;
     window.Sentry.captureException = function(...args){
@@ -413,12 +359,11 @@ try{
     // Only block checkUpdateRequired/forceUpdate when defined directly on window
     if(obj === window && (prop === 'checkUpdateRequired' || prop === 'forceUpdate')){
       console.log(`[shim] BLOCKED defineProperty for ${prop} on window`);
-      return origDefineProp(obj, prop, {value: false, writable: true, configurable: true});
+      return origDefineProp.call(Object, obj, prop, {value: false, writable: true, configurable: true});
     }
     // Allow all other Object.defineProperty calls to proceed normally.
-    // NOTE: must use Reflect.apply with an explicit `Object` receiver -- using `this` breaks
-    // ("TypeError: Illegal invocation") whenever the method is called detached.
-    return Reflect.apply(origDefineProp, Object, arguments);
+    // Use .call with Object as receiver to avoid "Illegal invocation" when called detached.
+    return origDefineProp.call(Object, obj, prop, desc);
   };
   
   console.log(`[shim] Background check suppression utilities installed`);

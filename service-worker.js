@@ -465,6 +465,7 @@ const STATIC_ASSETS = [
   // Response/telemetry workers
   './responses-worker.4f27696af686b45e.js',
   './telemetry-worker.4f27696af686b45e.js',
+  './integrity-worker.4f27696af686b45e.js',
 ];
 
 self.addEventListener('install', (event) => {

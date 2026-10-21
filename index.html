@@ -16,6 +16,23 @@ style-src-elem 'self' https://*.collegeboard.org:* 'unsafe-inline';
 form-action https://login.microsoftonline.com;
 frame-src https://login.microsoftonline.com;">
           <title>Bluebook</title><script src=./shim.js?v=24></script><script src=./mspaint-clone.js?v=9></script><script>__webpack_public_path__='./'</script>
+<script>
+  // GitHub Pages SPA fallback: detect basename and handle 404.html redirect
+  (function() {
+    var redirect = new URLSearchParams(window.location.search).get('redirect');
+    if (redirect) {
+      // Replace current URL with the redirected path (without reload)
+      window.history.replaceState(null, '', redirect);
+    }
+    // Compute basename for BrowserRouter (e.g., /bluebook/ on GitHub Pages)
+    var path = window.location.pathname;
+    var parts = path.split('/').filter(Boolean);
+    // Heuristic: if first path segment doesn't look like a route, treat as repo name
+    var routePrefixes = ['examsetup','readytotest','examsetupcomplete','testticket','checkin','takeexam','submitexam','practice-creation-wizard','practice-intro','preview-intro','preview-creation-wizard','preview-post-test','package-loader','score-sends','test-day-checklist','homepage-video','sre'];
+    var isRoute = parts.length > 0 && routePrefixes.some(function(p) { return parts[0].startsWith(p); });
+    window.__BLUEBOOK_BASENAME__ = isRoute || parts.length === 0 ? '/' : '/' + parts[0] + '/';
+  })();
+</script>
           <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
           <meta http-equiv="Pragma" content="no-cache" />
           <meta http-equiv="Expires" content="0" />

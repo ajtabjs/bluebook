@@ -1,3 +1,54 @@
-<h1>404</h1>
-<p>this is a 404 page, not sure how you got here?</p>
-<p> patched by aj :3</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: https://*.collegeboard.org:*; font-src 'self' data: https://*.collegeboard.org:*; style-src 'self' 'unsafe-inline' https://*.collegeboard.org:*; media-src 'self' blob: data: https://*.collegeboard.org:*; img-src 'self' data: https://*.collegeboard.org:*; worker-src 'self' blob:; script-src-elem 'self' 'unsafe-inline' blob: https://*.collegeboard.org:*; connect-src 'self' https://*.collegeboard.org:* https://o516766.ingest.sentry.io/api/5667256/ https://agwtc.collegeboard.org/ https://login.microsoftonline.com ws://*.collegeboard.org:* wss://*.collegeboard.org:*; style-src-elem 'self' https://*.collegeboard.org:* 'unsafe-inline'; form-action https://login.microsoftonline.com; frame-src https://login.microsoftonline.com;">
+  <title>Bluebook</title>
+  <script src=./shim.js?v=24></script>
+  <script src=./mspaint-clone.js?v=9></script>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="robots" content="noindex, nofollow">
+  <style>body{margin:0;padding:0;}</style>
+</head>
+<body>
+  <div id="app-utility"></div>
+  <div id="app"></div>
+  <script>
+    (function() {
+      // SPA fallback for GitHub Pages: redirect to index.html with path preserved
+      // The app uses BrowserRouter; on GH Pages under /bluebook/, we need to 
+      // redirect to /bluebook/ with the original path so the router can handle it
+      var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // Detect repo base path from current URL
+      // e.g., https://user.github.io/bluebook/takeexam/123 -> base is /bluebook/
+      var segments = path.split('/').filter(Boolean);
+      var repoPath = segments.length > 0 ? '/' + segments[0] + '/' : '/';
+      
+      // If we're already at the repo root, don't redirect (avoid loop)
+      if (path === repoPath || path === repoPath.slice(0, -1)) {
+        return;
+      }
+      
+      // Build redirect URL: repo root + encoded original path
+      var redirectPath = path.slice(repoPath.length - 1); // e.g., /takeexam/123
+      var redirectUrl = repoPath + '?redirect=' + encodeURIComponent(redirectPath + search + hash);
+      
+      // Use replace to avoid history entry for the 404 page
+      window.location.replace(redirectUrl);
+    })();
+  </script>
+  <script defer src="./vendor-public.js?xc2cfix25"></script>
+  <script defer src="./vendor-private.js?xc2cfix25"></script>
+  <script defer src="./main.js?xc2cfix25"></script>
+  <meta name="theme-color" content="white">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./bluebook-16x16.1121fe81.png">
+  <link rel="icon" href="./bluebook-32x32.cb8ed68a.png">
+</body>
+</html>
