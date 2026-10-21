@@ -18,20 +18,20 @@
     let brushSize = 3;
     let history = [];
     let historyIndex = -1;
-    let selection = null;
-    let isSelecting = false;
-    let selectStartX = 0;
-    let selectStartY = 0;
 
     // Color palette
     const colors = [
         '#000000', '#808080', '#FF0000', '#00FF00', '#0000FF',
         '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF', '#C0C0C0',
         '#800000', '#808000', '#008000', '#800080', '#008080',
-        '#C0C0C0', '#FF8000', '#8000FF', '#00FF80', '#FF8080'
+        '#404040', '#FF8000', '#8000FF', '#00FF80', '#FF8080'
     ];
 
-    // Create paint window
+    // Win98-style bevel helpers (raised = button out, sunken = pressed/inset)
+    const BEVEL_RAISED = 'border-top:1px solid #FFFFFF;border-left:1px solid #FFFFFF;border-right:1px solid #404040;border-bottom:1px solid #404040;';
+    const BEVEL_SUNKEN = 'border-top:1px solid #404040;border-left:1px solid #404040;border-right:1px solid #FFFFFF;border-bottom:1px solid #FFFFFF;';
+    const BEVEL_PRESSED = 'border:1px solid #000080;background:#C8D8F0;';
+
     function createPaintWindow() {
         if (paintWindow) {
             paintWindow.style.display = 'flex';
@@ -48,130 +48,109 @@
             transform: translate(-50%, -50%);
             width: 900px;
             height: 650px;
-            background: #E0E0E0;
-            border: 2px solid #000;
-            box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+            background: #D4D0C8;
+            border-top: 2px solid #FFFFFF;
+            border-left: 2px solid #FFFFFF;
+            border-right: 2px solid #404040;
+            border-bottom: 2px solid #404040;
+            box-shadow: 4px 4px 12px rgba(0,0,0,0.6);
             z-index: 10000;
-            font-family: 'MS Sans Serif', sans-serif;
+            font-family: Tahoma, 'MS Sans Serif', sans-serif;
             font-size: 11px;
+            color: #000000;
             display: flex;
             flex-direction: column;
             user-select: none;
         `;
 
+        const toolDef = (tool, title, svg) => `
+            <button class="mspaint-tool" data-tool="${tool}" title="${title}" style="
+                width:26px;height:26px;background:#D4D0C8;${BEVEL_RAISED}
+                cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;
+            ">${svg}</button>`;
+
         paintWindow.innerHTML = `
             <!-- Title Bar -->
             <div id="mspaint-titlebar" style="
-                height: 22px;
-                background: #000080;
-                color: white;
+                height: 24px;
+                background: linear-gradient(to right, #000080, #1084D0);
+                color: #FFFFFF;
                 display: flex;
                 align-items: center;
                 padding: 0 4px;
                 cursor: move;
-                -webkit-app-region: drag;
+                font-weight: bold;
+                letter-spacing: 0.3px;
             ">
-                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Crect fill='white' width='16' height='16'/%3E%3Cpath d='M2 2h12v12H2z' fill='%23fff' stroke='%23000'/%3E%3Ccircle cx='5' cy='5' r='1' fill='%23f00'/%3E%3Ccircle cx='11' cy='5' r='1' fill='%230f0'/%3E%3Ccircle cx='8' cy='11' r='2' fill='%2300f'/%3E%3C/svg%3E" style="width:16px;height:16px;margin-right:4px;">
-                <span style="flex:1;">untitled - Paint</span>
-                <div style="display:flex;gap:2px;">
-                    <button id="mspaint-minimize" style="width:16px;height:16px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;font-size:10px;cursor:pointer;">_</button>
-                    <button id="mspaint-maximize" style="width:16px;height:16px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;font-size:10px;cursor:pointer;">□</button>
-                    <button id="mspaint-close" style="width:16px;height:16px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;font-size:10px;cursor:pointer;">×</button>
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Crect fill='white' width='16' height='16' stroke='black'/%3E%3Ccircle cx='5' cy='5' r='1.5' fill='%23f00'/%3E%3Ccircle cx='11' cy='5' r='1.5' fill='%230a0'/%3E%3Ccircle cx='8' cy='11' r='2' fill='%2300f'/%3E%3C/svg%3E" style="width:16px;height:16px;margin-right:6px;">
+                <span style="flex:1;font-size:12px;">untitled - Paint</span>
+                <div style="display:flex;gap:3px;">
+                    <button id="mspaint-minimize" style="width:18px;height:16px;background:#D4D0C8;${BEVEL_RAISED}font-size:11px;font-weight:bold;cursor:pointer;color:#000;line-height:1;">_</button>
+                    <button id="mspaint-maximize" style="width:18px;height:16px;background:#D4D0C8;${BEVEL_RAISED}font-size:10px;font-weight:bold;cursor:pointer;color:#000;line-height:1;">□</button>
+                    <button id="mspaint-close" style="width:18px;height:16px;background:#D4D0C8;${BEVEL_RAISED}font-size:11px;font-weight:bold;cursor:pointer;color:#000;line-height:1;">×</button>
                 </div>
             </div>
 
             <!-- Menu Bar -->
             <div id="mspaint-menubar" style="
-                height: 20px;
-                background: #E0E0E0;
+                height: 22px;
+                background: #D4D0C8;
                 border-bottom: 1px solid #808080;
                 display: flex;
+                align-items: center;
                 padding: 0 2px;
+                color: #000000;
+                font-size: 11px;
             ">
-                <div class="mspaint-menu" data-menu="file" style="position:relative;">File ▼</div>
-                <div class="mspaint-menu" data-menu="edit" style="position:relative;">Edit ▼</div>
-                <div class="mspaint-menu" data-menu="view" style="position:relative;">View ▼</div>
-                <div class="mspaint-menu" data-menu="image" style="position:relative;">Image ▼</div>
-                <div class="mspaint-menu" data-menu="colors" style="position:relative;">Colors ▼</div>
-                <div class="mspaint-menu" data-menu="help" style="position:relative;">Help ▼</div>
+                <div class="mspaint-menu" data-menu="file" style="padding:2px 8px;cursor:pointer;">File</div>
+                <div class="mspaint-menu" data-menu="edit" style="padding:2px 8px;cursor:pointer;">Edit</div>
+                <div class="mspaint-menu" data-menu="view" style="padding:2px 8px;cursor:pointer;">View</div>
+                <div class="mspaint-menu" data-menu="image" style="padding:2px 8px;cursor:pointer;">Image</div>
+                <div class="mspaint-menu" data-menu="colors" style="padding:2px 8px;cursor:pointer;">Colors</div>
+                <div class="mspaint-menu" data-menu="help" style="padding:2px 8px;cursor:pointer;">Help</div>
             </div>
 
             <!-- Toolbar -->
             <div id="mspaint-toolbar" style="
-                height: 60px;
-                background: #E0E0E0;
+                height: 64px;
+                background: #D4D0C8;
                 border-bottom: 1px solid #808080;
                 padding: 4px;
                 display: flex;
                 flex-wrap: wrap;
-                gap: 2px;
+                gap: 3px;
+                align-items: center;
                 overflow-x: auto;
             ">
-                <div style="display:flex;gap:2px;align-items:center;border-right:1px solid #808080;padding-right:4px;margin-right:4px;">
-                    <button class="mspaint-tool" data-tool="undo" title="Undo (Ctrl+Z)" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5.22.7.33 1.44.33 2.2 0 2.65-2.15 4.9-4.83 4.94-2.36.01-4.4-1.97-4.8-4.33l-1.42 1.42C8.27 19.54 10.92 21 14 21c3.68 0 6.94-2.47 8.07-5.88l-1.47-1.47c-.64.97-1.5 1.87-2.53 2.71-.95.76-2.02 1.4-3.2 1.89-2.2.02-4.01-1.43-4.74-3.48 0-.68.08-1.34.22-1.96L12 7c-1.91 0-3.65.59-5.02 1.55l-1.43 1.43C8.77 10.54 10.45 9 12.5 9c2.35 0 4.33 1.22 5.36 3.04.21.38.33.8.33 1.27 0 .84-.24 1.63-.64 2.31l1.52 1.52c.49-.72.74-1.56.74-2.74 0-2.5-2.04-4.54-4.54-4.54z" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="redo" title="Redo (Ctrl+Y)" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M18.4 10.6C16.55 8.99 14.21 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 12c1.3-2.23 3.45-3.9 5.9-3.9 2.23 0 4.12 1.14 5.1 2.77l1.35-1.35C12.97 8.81 12.3 8.5 11.5 8.5c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5.22.7.33 1.44.33 2.2 0 2.65-2.15 4.9-4.83 4.94-2.36.01-4.4-1.97-4.8-4.33l-1.42 1.42C8.27 19.54 10.92 21 14 21c3.68 0 6.94-2.47 8.07-5.88l-1.47-1.47c-.64.97-1.5 1.87-2.53 2.71-.95.76-2.02 1.4-3.2 1.89-2.2.02-4.01-1.43-4.74-3.48 0-.68.08-1.34.22-1.96L12 7c-1.91 0-3.65.59-5.02 1.55l-1.43 1.43C8.77 10.54 10.45 9 12.5 9c2.35 0 4.33 1.22 5.36 3.04.21.38.33.8.33 1.27 0 .84-.24 1.63-.64 2.31l1.52 1.52c.49-.72.74-1.56.74-2.74 0-2.5-2.04-4.54-4.54-4.54z" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="select" title="Select" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 3h6v6H3zM3 15h6v6H3zM15 3h6v6h-6zM15 15h6v6h-6z" fill="none" stroke="black" stroke-width="2"/><path d="M9 9h6v6H9z" fill="none" stroke="black" stroke-width="2" stroke-dasharray="4"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="freeform-select" title="Free-form Select" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 3c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V3zm5 14H5v-4h4v4zm6 0H11v-4h4v4zm6 0h-4v-4h4v4z" fill="none" stroke="black" stroke-width="1.5"/></svg>
-                    </button>
+                <div style="display:flex;gap:3px;align-items:center;border-right:2px solid #808080;padding-right:6px;margin-right:4px;">
+                    ${toolDef('undo', 'Undo (Ctrl+Z)', '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5.22.7.33 1.44.33 2.2 0 2.65-2.15 4.9-4.83 4.94-2.36.01-4.4-1.97-4.8-4.33l-1.42 1.42C8.27 19.54 10.92 21 14 21c3.68 0 6.94-2.47 8.07-5.88" fill="none" stroke="black" stroke-width="2"/></svg>')}
+                    ${toolDef('redo', 'Redo (Ctrl+Y)', '<svg width="16" height="16" viewBox="0 0 24 24" style="transform:scaleX(-1)"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5.22.7.33 1.44.33 2.2 0 2.65-2.15 4.9-4.83 4.94-2.36.01-4.4-1.97-4.8-4.33l-1.42 1.42C8.27 19.54 10.92 21 14 21c3.68 0 6.94-2.47 8.07-5.88" fill="none" stroke="black" stroke-width="2"/></svg>')}
+                    ${toolDef('select', 'Rectangle Select', '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" fill="none" stroke="black" stroke-width="2" stroke-dasharray="4 2"/></svg>')}
+                    ${toolDef('freeform-select', 'Free-form Select', '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M4 4 Q2 12 6 14 Q4 18 10 20 Q14 22 18 18 Q22 14 20 8 Q18 2 12 4 Q8 2 4 4Z" fill="none" stroke="black" stroke-width="2"/></svg>')}
                 </div>
-                <div style="display:flex;gap:2px;align-items:center;border-right:1px solid #808080;padding-right:4px;margin-right:4px;">
-                    <button class="mspaint-tool" data-tool="eraser" title="Eraser" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M20 4H4v16h16V4zm-2 14H6V6h12v12z" fill="none" stroke="black" stroke-width="1.5"/><rect x="8" y="8" width="8" height="8" fill="white" stroke="#ccc"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="fill" title="Fill with color" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M18 6H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM6 8h12v8H8v-8z" fill="none" stroke="black" stroke-width="1.5"/><circle cx="15" cy="11" r="2" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="picker" title="Pick color" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="black" stroke-width="1.5"/><circle cx="12" cy="12" r="4" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="zoom" title="Zoom" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="black" stroke-width="1.5"/><path d="M16 16l5 5" stroke="black" stroke-width="1.5"/></svg>
-                    </button>
+                <div style="display:flex;gap:3px;align-items:center;border-right:2px solid #808080;padding-right:6px;margin-right:4px;">
+                    ${toolDef('eraser', 'Eraser', '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" fill="white" stroke="black" stroke-width="2"/><line x1="8" y1="8" x2="16" y2="16" stroke="black" stroke-width="1"/></svg>')}
+                    ${toolDef('fill', 'Fill with color', '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M10 2 L18 10 L10 18 L2 10 Z" fill="black"/><circle cx="18" cy="16" r="3" fill="black"/></svg>')}
+                    ${toolDef('picker', 'Pick color', '<svg width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="black" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="black"/></svg>')}
+                    ${toolDef('zoom', 'Zoom', '<svg width="16" height="16" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="black" stroke-width="2"/><line x1="15" y1="15" x2="21" y2="21" stroke="black" stroke-width="2"/></svg>')}
                 </div>
-                <div style="display:flex;gap:2px;align-items:center;border-right:1px solid #808080;padding-right:4px;margin-right:4px;">
-                    <button class="mspaint-tool" data-tool="pencil" title="Pencil" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;" data-active="true">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="brush" title="Brush" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3h16c0-1.66-1.34-3-3-3V7H7v7zm0-4h16c1.1 0 2-.9 2-2V3c0-1.1-.9-2-2-2H7c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h10v7H7v7z" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="airbrush" title="Airbrush" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 5h10v2H7zm0 2h10v2H7zm0 2h10v2H7zm0 2h6v2H7zm0 2h2v2H7z" fill="black"/><path d="M17 7v10c0 1.1-.9 2-2 2h-2v2h-2v-2h-2v-2h2v-2h2v-2h-2v-2h2z" fill="black"/></svg>
-                    </button>
+                <div style="display:flex;gap:3px;align-items:center;border-right:2px solid #808080;padding-right:6px;margin-right:4px;">
+                    ${toolDef('pencil', 'Pencil', '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="black"/><path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="black"/></svg>')}
+                    ${toolDef('brush', 'Brush', '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M7 14c-1.66 0-3 1.34-3 3h16c0-1.66-1.34-3-3-3V3H7v11z" fill="black"/></svg>')}
+                    ${toolDef('airbrush', 'Airbrush', '<svg width="16" height="16" viewBox="0 0 24 24"><circle cx="7" cy="7" r="1.5" fill="black"/><circle cx="11" cy="5" r="1" fill="black"/><circle cx="13" cy="9" r="1.2" fill="black"/><circle cx="9" cy="11" r="1" fill="black"/><path d="M14 9 L20 20 L8 20 Z" fill="black"/></svg>')}
                 </div>
-                <div style="display:flex;gap:2px;align-items:center;border-right:1px solid #808080;padding-right:4px;margin-right:4px;">
-                    <button class="mspaint-tool" data-tool="text" title="Text" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 5h16c.55 0 1 .45 1 1v12c0 .55-.45 1-1 1H4c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1zm0 14h16V6H4v12zm8-10h8v2h-8zm0 3h8v2h-8zm0 3h8v2h-8z" fill="black"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="line" title="Line" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4" stroke="black" stroke-width="2"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="curve" title="Curve" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M4 20c0-4 4-8 8-8s8 4 8 8" fill="none" stroke="black" stroke-width="2"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="rectangle" title="Rectangle" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="none" stroke="black" stroke-width="2"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="rounded-rect" title="Rounded Rectangle" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="black" stroke-width="2"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="ellipse" title="Ellipse" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="6" fill="none" stroke="black" stroke-width="2"/></svg>
-                    </button>
-                    <button class="mspaint-tool" data-tool="polygon" title="Polygon" style="width:24px;height:24px;background:#E0E0E0;border:1px solid #FFF 1px solid #808080 1px solid #808080;cursor:pointer;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><polygon points="12,2 22,8 22,16 12,22 2,16 2,8" fill="none" stroke="black" stroke-width="1.5"/></svg>
-                    </button>
+                <div style="display:flex;gap:3px;align-items:center;border-right:2px solid #808080;padding-right:6px;margin-right:4px;">
+                    ${toolDef('text', 'Text', '<svg width="16" height="16" viewBox="0 0 24 24"><text x="4" y="18" font-size="18" font-weight="bold" fill="black">A</text></svg>')}
+                    ${toolDef('line', 'Line', '<svg width="16" height="16" viewBox="0 0 24 24"><line x1="4" y1="20" x2="20" y2="4" stroke="black" stroke-width="2.5"/></svg>')}
+                    ${toolDef('curve', 'Curve', '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M4 20c0-4 4-8 8-8s8 4 8 8" fill="none" stroke="black" stroke-width="2.5"/></svg>')}
+                    ${toolDef('rectangle', 'Rectangle', '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" fill="none" stroke="black" stroke-width="2.5"/></svg>')}
+                    ${toolDef('rounded-rect', 'Rounded Rectangle', '<svg width="16" height="16" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5" fill="none" stroke="black" stroke-width="2.5"/></svg>')}
+                    ${toolDef('ellipse', 'Ellipse', '<svg width="16" height="16" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="7" fill="none" stroke="black" stroke-width="2.5"/></svg>')}
+                    ${toolDef('polygon', 'Polygon', '<svg width="16" height="16" viewBox="0 0 24 24"><polygon points="12,2 22,8 22,16 12,22 2,16 2,8" fill="none" stroke="black" stroke-width="2"/></svg>')}
                 </div>
-                <div style="display:flex;gap:2px;align-items:center;">
-                    <span style="font-size:10px;color:#000;margin-right:4px;">Size:</span>
-                    <select id="mspaint-brush-size" style="width:50px;height:20px;font-size:10px;background:#FFF;border:1px solid #808080;">
+                <div style="display:flex;gap:4px;align-items:center;">
+                    <span style="font-size:11px;color:#000;font-weight:bold;">Size:</span>
+                    <select id="mspaint-brush-size" style="width:56px;height:22px;font-size:11px;background:#FFF;color:#000;${BEVEL_SUNKEN}">
                         <option value="1">1 px</option>
                         <option value="2">2 px</option>
                         <option value="3" selected>3 px</option>
@@ -197,43 +176,44 @@
                 <canvas id="mspaint-canvas" style="
                     background: white;
                     cursor: crosshair;
-                    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                    box-shadow: 2px 2px 6px rgba(0,0,0,0.5);
                 "></canvas>
             </div>
 
             <!-- Color Palette -->
             <div id="mspaint-palette" style="
-                height: 40px;
-                background: #E0E0E0;
+                height: 42px;
+                background: #D4D0C8;
                 border-top: 1px solid #808080;
                 display: flex;
                 align-items: center;
                 padding: 0 8px;
-                gap: 2px;
+                gap: 6px;
             ">
-                <div style="width:2px;height:30px;background:linear-gradient(to right,#FFF 0%,#808080 50%,#000 100%);"></div>
-                <div style="display:flex;gap:1px;flex-wrap:wrap;">
-                    ${colors.map(c => `<button class="mspaint-color" data-color="${c}" style="width:18px;height:18px;background:${c};border:1px solid ${c==='#000000'?'#FFF':'#000'};border-right:1px solid #808080;border-bottom:1px solid #808080;cursor:pointer;" ${c==='#000000'?'data-active="true"':''}></button>`).join('')}
+                <div id="mspaint-current-color-preview" style="
+                    width:34px;height:28px;background:#000000;
+                    ${BEVEL_SUNKEN}flex-shrink:0;
+                "></div>
+                <div style="display:grid;grid-template-columns:repeat(10,18px);grid-template-rows:repeat(2,16px);gap:1px;${BEVEL_SUNKEN}padding:2px;">
+                    ${colors.map(c => `<button class="mspaint-color" data-color="${c}" style="width:18px;height:16px;background:${c};border:1px solid #808080;cursor:pointer;padding:0;" ${c==='#000000'?'data-active="true"':''}></button>`).join('')}
                 </div>
-                <div style="margin-left:8px;padding:0 8px;background:#FFF;border:1px solid #808080;min-width:40px;text-align:center;font-size:10px;color:#000;" id="mspaint-current-color-preview">■</div>
             </div>
 
             <!-- Status Bar -->
             <div id="mspaint-statusbar" style="
-                height: 20px;
-                background: #E0E0E0;
-                border-top: 1px solid #FFF;
-                border-bottom: 1px solid #808080;
+                height: 22px;
+                background: #D4D0C8;
+                border-top: 1px solid #FFFFFF;
                 display: flex;
                 align-items: center;
                 padding: 0 8px;
-                font-size: 10px;
-                color: #000;
+                font-size: 11px;
+                color: #000000;
             ">
-                <span id="mspaint-coords">X: 0  Y: 0</span>
-                <span style="margin:0 16px;">|</span>
+                <span id="mspaint-coords" style="min-width:90px;">X: 0  Y: 0</span>
+                <span style="margin:0 10px;color:#808080;">|</span>
                 <span id="mspaint-size">800 x 600</span>
-                <span style="margin:0 16px;">|</span>
+                <span style="margin:0 10px;color:#808080;">|</span>
                 <span id="mspaint-tool-status">Tool: Pencil</span>
                 <div style="flex:1;"></div>
                 <span id="mspaint-zoom">100%</span>
@@ -242,7 +222,6 @@
 
         document.body.appendChild(paintWindow);
 
-        // Initialize canvas
         canvas = document.getElementById('mspaint-canvas');
         canvas.width = 800;
         canvas.height = 600;
@@ -254,47 +233,48 @@
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        // Save initial state
         saveState();
-
-        // Setup event listeners
         setupEventListeners();
-
-        // Make draggable
+        setActiveToolStyle('pencil');
         makeDraggable(paintWindow, document.getElementById('mspaint-titlebar'));
     }
 
+    function setActiveToolStyle(tool) {
+        document.querySelectorAll('.mspaint-tool').forEach(btn => {
+            if (btn.dataset.tool === tool) {
+                btn.style.cssText = `width:26px;height:26px;${BEVEL_PRESSED}cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;`;
+            } else {
+                btn.style.cssText = `width:26px;height:26px;background:#D4D0C8;${BEVEL_RAISED}cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;`;
+            }
+        });
+    }
+
     function setupEventListeners() {
-        // Tool buttons
         document.querySelectorAll('.mspaint-tool').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (btn.dataset.tool) {
-                    setTool(btn.dataset.tool);
-                }
+                if (btn.dataset.tool) setTool(btn.dataset.tool);
             });
         });
 
-        // Color buttons
         document.querySelectorAll('.mspaint-color').forEach(btn => {
-            btn.addEventListener('click', () => {
-                setColor(btn.dataset.color);
+            btn.addEventListener('click', () => setColor(btn.dataset.color));
+            btn.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                setColor(btn.dataset.color); // right-click = same set for simplicity
             });
         });
 
-        // Brush size
         document.getElementById('mspaint-brush-size').addEventListener('change', (e) => {
             brushSize = parseInt(e.target.value);
             ctx.lineWidth = brushSize;
         });
 
-        // Canvas events
         canvas.addEventListener('mousedown', onMouseDown);
         canvas.addEventListener('mousemove', onMouseMove);
         canvas.addEventListener('mouseup', onMouseUp);
         canvas.addEventListener('mouseleave', onMouseUp);
         canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-        // Window controls
         document.getElementById('mspaint-close').addEventListener('click', () => {
             paintWindow.style.display = 'none';
         });
@@ -302,45 +282,20 @@
             paintWindow.style.display = 'none';
         });
 
-        // Keyboard shortcuts
         document.addEventListener('keydown', onKeyDown);
-
-        // Color palette scroll
-        const palette = document.getElementById('mspaint-palette');
-        palette.addEventListener('wheel', (e) => {
-            if (e.ctrlKey) {
-                e.preventDefault();
-                palette.scrollLeft += e.deltaY;
-            }
-        });
     }
 
     function setTool(tool) {
         currentTool = tool;
-        document.querySelectorAll('.mspaint-tool').forEach(btn => {
-            btn.dataset.active = btn.dataset.tool === tool ? 'true' : 'false';
-            btn.style.border = btn.dataset.tool === tool ? '2px solid #000080' : '1px solid #FFF 1px solid #808080 1px solid #808080';
-        });
+        setActiveToolStyle(tool);
         document.getElementById('mspaint-tool-status').textContent = `Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`;
-        
-        // Update cursor
+
         const cursors = {
-            pencil: 'crosshair',
-            brush: 'crosshair',
-            airbrush: 'crosshair',
-            eraser: 'cell',
-            fill: 'copy',
-            picker: 'crosshair',
-            zoom: 'zoom-in',
-            text: 'text',
-            select: 'default',
-            'freeform-select': 'crosshair',
-            line: 'crosshair',
-            curve: 'crosshair',
-            rectangle: 'crosshair',
-            'rounded-rect': 'crosshair',
-            ellipse: 'crosshair',
-            polygon: 'crosshair'
+            pencil: 'crosshair', brush: 'crosshair', airbrush: 'crosshair',
+            eraser: 'cell', fill: 'copy', picker: 'crosshair', zoom: 'zoom-in',
+            text: 'text', select: 'default', 'freeform-select': 'crosshair',
+            line: 'crosshair', curve: 'crosshair', rectangle: 'crosshair',
+            'rounded-rect': 'crosshair', ellipse: 'crosshair', polygon: 'crosshair'
         };
         canvas.style.cursor = cursors[tool] || 'crosshair';
     }
@@ -350,8 +305,7 @@
         ctx.strokeStyle = color;
         ctx.fillStyle = color;
         document.querySelectorAll('.mspaint-color').forEach(btn => {
-            btn.dataset.active = btn.dataset.color === color ? 'true' : 'false';
-            btn.style.border = btn.dataset.color === color ? '2px solid #000080' : '1px solid #FFF 1px solid #808080 1px solid #808080';
+            btn.style.border = btn.dataset.color === color ? '2px solid #000080' : '1px solid #808080';
         });
         document.getElementById('mspaint-current-color-preview').style.background = color;
     }
@@ -360,7 +314,7 @@
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        
+
         isDrawing = true;
         lastX = x;
         lastY = y;
@@ -381,7 +335,6 @@
             return;
         }
 
-        // Save state for shape tools
         if (['line', 'curve', 'rectangle', 'rounded-rect', 'ellipse', 'polygon'].includes(currentTool)) {
             saveState();
         }
@@ -391,7 +344,7 @@
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        
+
         document.getElementById('mspaint-coords').textContent = `X: ${Math.floor(x)}  Y: ${Math.floor(y)}`;
 
         if (!isDrawing) return;
@@ -425,9 +378,6 @@
             case 'ellipse':
                 redrawCanvas();
                 drawShape(currentTool, lastX, lastY, x, y);
-                break;
-            case 'polygon':
-                // Handle on click, not drag
                 break;
         }
     }
@@ -489,7 +439,7 @@
     function drawShape(tool, x1, y1, x2, y2) {
         const w = x2 - x1;
         const h = y2 - y1;
-        
+
         ctx.beginPath();
         switch (tool) {
             case 'line':
@@ -498,7 +448,6 @@
                 ctx.stroke();
                 break;
             case 'curve':
-                // Quadratic curve with middle control point
                 const cx = (x1 + x2) / 2;
                 const cy = (y1 + y2) / 2 - Math.abs(x2 - x1) * 0.3;
                 ctx.moveTo(x1, y1);
@@ -554,7 +503,7 @@
         const targetData = ctx.getImageData(x, y, 1, 1).data;
         const targetColor = [targetData[0], targetData[1], targetData[2], targetData[3]];
         const fill = hexToRgba(fillColor);
-        
+
         if (colorsEqual(targetColor, fill)) return;
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -562,23 +511,23 @@
         const width = canvas.width;
         const height = canvas.height;
         const stack = [[x, y]];
-        
+
         while (stack.length) {
             const [cx, cy] = stack.pop();
             if (cx < 0 || cx >= width || cy < 0 || cy >= height) continue;
-            
+
             const idx = (cy * width + cx) * 4;
             if (!colorsEqual([data[idx], data[idx+1], data[idx+2], data[idx+3]], targetColor)) continue;
             if (colorsEqual([data[idx], data[idx+1], data[idx+2], data[idx+3]], fill)) continue;
-            
+
             data[idx] = fill[0];
             data[idx+1] = fill[1];
             data[idx+2] = fill[2];
             data[idx+3] = fill[3];
-            
+
             stack.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
         }
-        
+
         ctx.putImageData(imageData, 0, 0);
     }
 
@@ -608,7 +557,7 @@
         `;
         paintWindow.appendChild(input);
         input.focus();
-        
+
         const finish = () => {
             const text = input.value;
             if (text) {
@@ -635,11 +584,9 @@
             e.preventDefault();
             redo();
         }
-        // Use backtick (`) key instead of Escape to close window (Escape exits fullscreen)
         if (e.key === '`' && paintWindow && paintWindow.style.display !== 'none') {
             paintWindow.style.display = 'none';
         }
-        // Global keybind to toggle paint window: Ctrl+Shift+P
         if (e.ctrlKey && e.shiftKey && e.key === 'P') {
             e.preventDefault();
             if (paintWindow && paintWindow.style.display !== 'none') {
@@ -648,9 +595,7 @@
                 createPaintWindow();
             }
         }
-        // Forward slash (/) to open paint window for testing
         if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            // Prevent triggering when typing in inputs
             const target = e.target;
             if (!(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
                 e.preventDefault();
@@ -701,17 +646,14 @@
         }
     }
 
-    // Export for external triggering
     window.MSPaintClone = {
         show: createPaintWindow,
         hide: () => paintWindow && (paintWindow.style.display = 'none'),
-        toggle: () => paintWindow && paintWindow.style.display !== 'none' ? 
+        toggle: () => paintWindow && paintWindow.style.display !== 'none' ?
             (paintWindow.style.display = 'none') : createPaintWindow()
     };
 
-    // Global keybind to toggle paint window - register immediately on load
     function onGlobalKeyDown(e) {
-        // Ctrl+Shift+P to toggle paint window
         if (e.ctrlKey && e.shiftKey && e.key === 'P') {
             e.preventDefault();
             if (paintWindow && paintWindow.style.display !== 'none') {
@@ -721,9 +663,7 @@
             }
             return;
         }
-        // Forward slash (/) to open paint window for testing
         if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            // Prevent triggering when typing in inputs
             const target = e.target;
             if (!(target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
                 e.preventDefault();
@@ -731,7 +671,6 @@
             }
             return;
         }
-        // Backtick (`) to close paint window
         if (e.key === '`' && paintWindow && paintWindow.style.display !== 'none') {
             paintWindow.style.display = 'none';
             return;
@@ -739,109 +678,39 @@
     }
     document.addEventListener('keydown', onGlobalKeyDown);
 
-    // Check for Desmos calculator and hook in
     function checkDesmos() {
-        console.log('[MSPaint] checkDesmos called, Desmos:', window.Desmos ? Object.keys(window.Desmos) : 'undefined');
         if (window.Desmos && (window.Desmos.Calculator || window.Desmos.GraphingCalculator)) {
-            // Hook into Desmos
             const CalcClass = window.Desmos.Calculator || window.Desmos.GraphingCalculator;
-            console.log('[MSPaint] Found Calculator class:', CalcClass);
             const originalGraph = CalcClass.prototype.setExpression;
             if (originalGraph) {
                 CalcClass.prototype.setExpression = function(state) {
                     if (state && (state.latex === 'x=miku' || state.latex === 'teto')) {
-                        console.log('[MSPaint] Easter egg triggered via setExpression:', state.latex);
                         setTimeout(() => createPaintWindow(), 100);
                     }
                     return originalGraph.call(this, state);
                 };
-                console.log('[MSPaint] Hooked setExpression');
-            } else {
-                console.log('[MSPaint] setExpression not found on prototype');
             }
-            
-            // Also watch for expression changes
             document.addEventListener('keydown', (e) => {
                 if (e.target.tagName === 'INPUT' && e.key === 'Enter') {
                     const val = e.target.value.toLowerCase().trim();
                     if (val === 'teto' || val === 'x=miku') {
-                        console.log('[MSPaint] Easter egg triggered via input:', val);
                         setTimeout(() => createPaintWindow(), 100);
                     }
                 }
             });
-            console.log('[MSPaint] Desmos hooks installed');
-        } else {
-            console.log('[MSPaint] Desmos not ready yet');
         }
     }
 
-    // Auto-initialize when Desmos loads
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', checkDesmos);
     } else {
         checkDesmos();
     }
 
-    // Also poll for Desmos
     const desmosInterval = setInterval(() => {
         if (window.Desmos) {
-            console.log('[MSPaint] Desmos detected:', Object.keys(window.Desmos));
             clearInterval(desmosInterval);
             checkDesmos();
         }
     }, 500);
-
-    // Also poll for calculator instances in the DOM
-    const instanceInterval = setInterval(() => {
-        // Check for calculator instances in the DOM
-        const calcElements = document.querySelectorAll('.dcg-calc-basic-main, .dcg-calc-basic-main-wrapper, [data-dcg-calculator]');
-        if (calcElements.length > 0) {
-            console.log('[MSPaint] Found calculator DOM elements:', calcElements.length);
-            clearInterval(instanceInterval);
-            hookCalculatorInstances();
-        }
-    }, 500);
-
-    function hookCalculatorInstances() {
-        // Try to find calculator controllers in the DOM
-        const controllers = document.querySelectorAll('[data-dcg-controller]');
-        console.log('[MSPaint] Found controllers:', controllers.length);
-        
-        // Also try to find Desmos calculator instances
-        if (window.Desmos && window.Desmos.Calculator) {
-            console.log('[MSPaint] Desmos.Calculator found');
-        }
-        
-        // Try to find calculator instances in the window
-        if (window.calculator) {
-            console.log('[MSPaint] Found window.calculator');
-            hookCalculator(window.calculator);
-        }
-        
-        // Check for Desmos calculator instance in global scope
-        if (window.Desmos && window.Desmos.GraphingCalculator) {
-            // Try to find instances
-            const instances = document.querySelectorAll('.dcg-calc-basic-main');
-            console.log('[MSPaint] Found calculator instances:', instances.length);
-        }
-    }
-    
-    function hookCalculator(calc) {
-        if (calc && calc.controller && calc.controller.model) {
-            console.log('[MSPaint] Hooking calculator instance');
-            // Hook into the controller's setExpression
-            const originalSetExpression = calc.controller.setExpression;
-            if (originalSetExpression) {
-                calc.controller.setExpression = function(state) {
-                    if (state && (state.latex === 'x=miku' || state.latex === 'teto')) {
-                        console.log('[MSPaint] Easter egg triggered via setExpression:', state.latex);
-                        setTimeout(() => createPaintWindow(), 100);
-                    }
-                    return originalSetExpression.call(this, state);
-                };
-            }
-        }
-    }
-})
-();
+})();
