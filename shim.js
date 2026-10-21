@@ -28,6 +28,12 @@ try{
   window.open = function(u){ if(isBad(u)){ console.log(`[shim] BLOCKED window.open`, u); return null; } return origOpen.apply(this, arguments); };
 }catch(e){}
 try{ Object.defineProperty(Navigator.prototype, `userAgent`, { get: function(){ return `Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36`; }, configurable: true }); }catch(e){}
+// CRITICAL: the platform bundle (vendor-private.js) gates its entire module map behind
+// w205U.F4j(), which regex-matches navigator.userAgent AND navigator.appVersion against a
+// " CrOS <token> " pattern. If appVersion is not spoofed to match the UA, F4j() returns false,
+// `return R$_[4]` is skipped, chunk 696 ships `undefined`, module 18973 (L6q) never registers,
+// and the app dies at boot with "Cannot read properties of undefined (reading 'call')".
+try{ Object.defineProperty(Navigator.prototype, `appVersion`, { get: function(){ return `5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36`; }, configurable: true }); }catch(e){}
 try{ Object.defineProperty(Navigator.prototype, `platform`, { get: function(){ return `Linux x86_64`; }, configurable: true }); }catch(e){}
 try{ if(navigator.userAgentData){ Object.defineProperty(navigator, `userAgentData`, { get: function(){ return { platform: `Chrome OS`, brands: [{brand: `Chromium`, version: `145`}, {brand: `Google Chrome`, version: `145`}], mobile: false }; }, configurable: true }); } }catch(e){}
 try{
@@ -409,8 +415,10 @@ try{
       console.log(`[shim] BLOCKED defineProperty for ${prop} on window`);
       return origDefineProp(obj, prop, {value: false, writable: true, configurable: true});
     }
-    // Allow all other Object.defineProperty calls to proceed normally
-    return origDefineProp.apply(this, arguments);
+    // Allow all other Object.defineProperty calls to proceed normally.
+    // NOTE: must use Reflect.apply with an explicit `Object` receiver -- using `this` breaks
+    // ("TypeError: Illegal invocation") whenever the method is called detached.
+    return Reflect.apply(origDefineProp, Object, arguments);
   };
   
   console.log(`[shim] Background check suppression utilities installed`);
